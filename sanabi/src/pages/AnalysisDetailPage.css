@@ -1,0 +1,79 @@
+.ad-page { min-height: 100vh; background: var(--color-gray-50); }
+.ad-container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; }
+.ad-breadcrumb { font-size: 12px; color: var(--color-gray-400); }
+.ad-bc-link { color: var(--color-primary); }
+.ad-bc-link:hover { text-decoration: underline; }
+
+.ad-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: flex-start; }
+
+/* 좌측 */
+.ad-left { display: flex; flex-direction: column; gap: 14px; }
+
+.ad-summary-card {
+  background: var(--color-white); border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow-sm);
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.ad-summary-left { display: flex; gap: 14px; align-items: center; }
+.ad-summary-info { display: flex; flex-direction: column; gap: 4px; }
+.ad-summary-title { font-size: 12px; font-weight: 700; color: var(--color-navy); }
+.ad-summary-sub   { font-size: 11px; color: var(--color-gray-400); }
+.ad-progress { height: 5px; background: var(--color-gray-200); border-radius: 99px; width: 120px; overflow: hidden; margin-top: 4px; }
+.ad-progress-fill { height: 100%; background: var(--color-primary); border-radius: 99px; transition: width .5s; }
+.ad-summary-right { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+.ad-summary-field { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.ad-summary-field span  { color: var(--color-gray-400); width: 44px; }
+.ad-summary-field strong{ color: var(--color-navy); font-weight: 600; }
+
+/* 섹션 공통 */
+.ad-section {
+  background: var(--color-white); border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ad-section-header { display: flex; align-items: center; justify-content: space-between; }
+.ad-section-title  { font-size: 13px; font-weight: 700; color: var(--color-gray-700); }
+.ad-check-count    { font-size: 12px; font-weight: 700; color: var(--color-primary); }
+
+/* 체크리스트 */
+.ad-cl-item { border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); padding: 10px 12px; transition: all .15s; }
+.ad-cl-item--done { border-color: var(--color-primary-border); background: var(--color-primary-light); }
+.ad-cl-top  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.ad-cl-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--color-gray-200); background: var(--color-white); font-size: 10px; font-weight: 800; color: var(--color-white); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all .15s; }
+.ad-cl-check--done { background: var(--color-primary); border-color: var(--color-primary); }
+.ad-cl-title  { font-size: 12px; font-weight: 700; color: var(--color-navy); }
+.ad-cl-detail { font-size: 11px; color: var(--color-gray-500); line-height: 1.6; padding-left: 26px; }
+.ad-cl-detail p { margin-bottom: 2px; }
+
+/* 주의사항 */
+.ad-warning-item { background: var(--color-warning-light); border: 1px solid var(--color-warning-border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 11px; color: #b45309; line-height: 1.5; }
+
+/* 참고 판례 */
+.ad-meta-item { background: var(--color-gray-50); border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 11px; color: var(--color-gray-700); font-weight: 500; }
+
+/* PDF 다운로드 */
+.ad-pdf-area { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: 14px 16px; }
+.ad-pdf-locked { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ad-pdf-locked p { font-size: 13px; color: var(--color-gray-500); }
+.ad-pdf-locked strong { color: var(--color-primary); }
+
+/* 우측 채팅 */
+.ad-chat-panel {
+  background: var(--color-white); border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; position: sticky; top: 76px;
+  max-height: calc(100vh - 100px); overflow: hidden;
+}
+.ad-chat-header { padding: 14px 16px; border-bottom: 1px solid var(--color-gray-100); font-size: 13px; font-weight: 700; color: var(--color-navy); display: flex; align-items: center; gap: 8px; }
+.ad-chat-dot    { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+.ad-chat-msgs   { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.ad-bubble { max-width: 85%; border-radius: 12px; padding: 9px 12px; font-size: 12px; line-height: 1.6; }
+.ad-bubble--bot  { background: var(--color-gray-100); color: var(--color-gray-700); align-self: flex-start; border-bottom-left-radius: 3px; }
+.ad-bubble--user { background: var(--color-primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
+.ad-subscribe-notice { padding: 8px 14px; background: var(--color-warning-light); border-top: 1px solid var(--color-warning-border); font-size: 11px; color: #b45309; }
+.ad-sub-link { color: var(--color-primary); font-weight: 700; }
+.ad-chat-footer { padding: 10px 12px; border-top: 1px solid var(--color-gray-100); display: flex; gap: 8px; }
+.ad-chat-input { flex: 1; height: 34px; border: 1.5px solid var(--color-gray-200); border-radius: var(--radius-md); padding: 0 12px; font-size: 12px; font-family: var(--font-sans); outline: none; transition: border-color .15s; }
+.ad-chat-input:focus { border-color: var(--color-primary); }
+.ad-chat-send { width: 34px; height: 34px; border-radius: var(--radius-md); background: var(--color-primary); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+.ad-chat-send:hover { background: #4f46e5; }

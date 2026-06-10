@@ -1,0 +1,58 @@
+.mbl-page { min-height: 100vh; background: var(--color-gray-50); }
+.mbl-container { max-width: 1000px; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+/* 의뢰 요약 카드 */
+.mbl-match-card { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 20px 24px; box-shadow: var(--shadow-sm); }
+.mbl-match-top  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.mbl-match-date { font-size: 12px; color: var(--color-gray-400); }
+.mbl-match-title{ font-size: 18px; font-weight: 800; color: var(--color-navy); margin-bottom: 8px; }
+.mbl-match-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.mbl-match-price{ font-size: 14px; font-weight: 700; color: var(--color-primary); }
+.mbl-match-sep  { color: var(--color-gray-300); }
+.mbl-match-name { font-size: 13px; color: var(--color-gray-500); }
+.mbl-match-content { font-size: 13px; color: var(--color-gray-600); line-height: 1.7; padding-top: 10px; border-top: 1px solid var(--color-gray-100); }
+
+/* 레이아웃 */
+.mbl-layout { display: grid; grid-template-columns: 1fr 240px; gap: 16px; align-items: flex-start; }
+
+/* 입찰 섹션 */
+.mbl-section-title { font-size: 15px; font-weight: 800; color: var(--color-navy); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.mbl-bid-count     { font-size: 12px; color: var(--color-gray-400); font-weight: 500; }
+
+.mbl-bid-table { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); overflow: hidden; }
+.mbl-bid-th {
+  display: grid; grid-template-columns: 130px 1fr 100px 60px 60px 70px;
+  padding: 9px 14px; background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+  font-size: 10px; font-weight: 700; color: var(--color-gray-400); text-transform: uppercase; letter-spacing: .04em;
+}
+.mbl-bid-row {
+  display: grid; grid-template-columns: 130px 1fr 100px 60px 60px 70px;
+  padding: 12px 14px; border-bottom: 1px solid var(--color-gray-50);
+  align-items: center; transition: background .1s;
+}
+.mbl-bid-row:hover { background: #fafbff; }
+.mbl-bid-row:last-child { border-bottom: none; }
+.mbl-bid-row--top { background: #f0fdf4; }
+.mbl-bid-row--top:hover { background: #dcfce7; }
+
+.mbl-bid-price  { font-size: 13px; font-weight: 700; color: var(--color-navy); display: flex; flex-direction: column; gap: 3px; }
+.mbl-lowest     { display: inline-block; background: var(--color-success-light); color: #15803d; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.mbl-bid-lawyer { display: flex; gap: 8px; align-items: flex-start; }
+.mbl-lawyer-name{ font-size: 12px; font-weight: 700; color: var(--color-navy); margin-bottom: 2px; }
+.mbl-lawyer-msg { font-size: 10px; color: var(--color-gray-400); line-height: 1.4; }
+.mbl-bid-specialty { font-size: 11px; color: var(--color-gray-500); }
+.mbl-bid-career    { font-size: 11px; color: var(--color-gray-500); }
+.mbl-bid-rating    { font-size: 11px; font-weight: 600; color: var(--color-gray-700); display: flex; align-items: center; gap: 2px; }
+.mbl-stars { color: #fbbf24; }
+
+/* 사이드바 */
+.mbl-sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 76px; }
+.mbl-sidebar-card { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
+.mbl-sidebar-title { font-size: 13px; font-weight: 700; color: var(--color-navy); margin-bottom: 10px; }
+.mbl-sidebar-desc  { font-size: 12px; color: var(--color-gray-500); line-height: 1.5; }
+.mbl-status-info   { display: flex; align-items: center; gap: 8px; }
+.mbl-bid-count-sm  { font-size: 12px; color: var(--color-gray-400); }
+.mbl-notice-card strong { display: block; font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 8px; }
+.mbl-notice-card { background: var(--color-warning-light); border-color: var(--color-warning-border); }
+.mbl-notice-card p  { font-size: 12px; color: #92400e; line-height: 1.6; margin-bottom: 4px; }

@@ -15,7 +15,7 @@ export default function BoardListPage({ user }) {
   const size = 10;
 
   const fetchBoards = () => {
-    fetch(`http://localhost:8080/api/boards?page=${page}&size=${size}&searchType=all&keyword=${search}`)
+    fetch(`/api/boards?page=${page}&size=${size}&searchType=all&keyword=${search}`)
       .then((res) => res.json())
       .then((result) => {
         setPosts(result.data.contents);
@@ -39,7 +39,7 @@ export default function BoardListPage({ user }) {
   const handleDelete = (boardId) => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
 
-    fetch(`http://localhost:8080/api/boards/${boardId}`, {
+    fetch(`/api/boards/${boardId}`, {
       method: 'DELETE',
     })
       .then((res) => res.json())

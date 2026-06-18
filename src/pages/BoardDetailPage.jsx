@@ -9,14 +9,22 @@ export default function BoardDetailPage({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const isAdmin = user?.role === 'ADMIN';
-
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
 
+
+  // 임시 테스트
+  const currentUserId = user?.userId || 'testuser';
+  const isAuthor = post?.userId === currentUserId;
+  const isAdmin = user?.role === 'ADMIN';
+
+  //const isAdmin = user?.role === 'ADMIN';
+  //  const isAuthor = user?.userId === post.userId;
+
+
   useEffect(() => {
-    fetch(`http://localhost:8080/api/boards/${id}`)
+    fetch(`/api/boards/${id}`)
       .then((res) => res.json())
       .then((result) => {
         setPost(result.data);
@@ -26,19 +34,24 @@ export default function BoardDetailPage({ user }) {
       });
   }, [id]);
 
-  const handleDeletePost = () => {
+  const handleDeletePost = async () => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
 
-    fetch(`http://localhost:8080/api/boards/${id}`, {
-      method: 'DELETE',
-    })
-      .then((res) => res.json())
-      .then(() => {
-        navigate('/board');
-      })
-      .catch((error) => {
-        console.error('게시글 삭제 실패:', error);
+    try {
+      const response = await fetch(`/api/boards/${id}`, {
+        method: 'DELETE',
       });
+
+      if (!response.ok) {
+        throw new Error(`게시글 삭제 실패: ${response.status}`);
+      }
+
+      alert('게시글이 삭제되었습니다.');
+      navigate('/board');
+    } catch (error) {
+      console.error(error);
+      alert('게시글 삭제에 실패했습니다.');
+    }
   };
 
   const handleDeleteComment = (commentId) => {
@@ -73,7 +86,7 @@ export default function BoardDetailPage({ user }) {
     );
   }
 
-  const isAuthor = user?.userId === post.userId;
+
   const createdDate = post.createdAt?.slice(0, 10);
 
   return (
@@ -100,11 +113,20 @@ export default function BoardDetailPage({ user }) {
               {(isAuthor || isAdmin) && (
                 <>
                   {isAuthor && (
-                    <Button variant="ghost" size="xs">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => navigate(`/board/${id}/edit`)}
+                    >
                       수정
                     </Button>
                   )}
-                  <Button variant="danger" size="xs" onClick={handleDeletePost}>
+
+                  <Button
+                    variant="danger"
+                    size="xs"
+                    onClick={handleDeletePost}
+                  >
                     삭제
                   </Button>
                 </>

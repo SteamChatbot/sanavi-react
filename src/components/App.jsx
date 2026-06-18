@@ -32,6 +32,7 @@ export default function App() {
         <Route path="/agent"          element={<AgentPage        user={user} />} />
         <Route path="/board"          element={<BoardListPage    user={user} />} />
         <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
+        <Route path="/board/:id/edit" element={<BoardWritePage user={user} />}/>
         <Route path="/board/write"    element={<BoardWritePage user={user} />} />
         <Route path="/subscribe"      element={<SubscribePage    user={user} />} />
         <Route path="/lawyer/verify"      element={<LawyerVerifyPage   user={user} />} />

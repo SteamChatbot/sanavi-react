@@ -6,12 +6,8 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/auth': 'http://localhost:8080',
-      '/board': 'http://localhost:8080',
-      '/chat': 'http://localhost:8080',
-      '/subscribe': 'http://localhost:8080',
-      '/lawyer': 'http://localhost:8080',
+      //새로고침시 우리가만든 api설계대로하려면 /api만남겨야한다. 
+      '/api': 'http://localhost:8080'
     }
   }
 })

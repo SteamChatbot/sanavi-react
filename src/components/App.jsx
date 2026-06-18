@@ -8,6 +8,7 @@ import SignupPage         from '../pages/SignupPage';
 import AgentPage          from '../pages/AgentPage';
 import BoardListPage      from '../pages/BoardListPage';
 import BoardDetailPage    from '../pages/BoardDetailPage';
+import BoardWritePage     from '../pages/BoardWritePage';
 import SubscribePage      from '../pages/SubscribePage';
 import { LawyerVerifyPage } from '../pages/LawyerVerifyPage';
 import MatchPage            from '../pages/MatchPage';
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/agent"          element={<AgentPage        user={user} />} />
         <Route path="/board"          element={<BoardListPage    user={user} />} />
         <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
+        <Route path="/board/write"    element={<BoardWritePage user={user} />} />
         <Route path="/subscribe"      element={<SubscribePage    user={user} />} />
         <Route path="/lawyer/verify"      element={<LawyerVerifyPage   user={user} />} />
         <Route path="/match"              element={<MatchPage        user={user} />} />

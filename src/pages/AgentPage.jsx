@@ -1,9 +1,12 @@
+//분석페이지 폴링방식로딩모달(상태별 전환)+ 추가질의 페이지
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Badge from '../components/Badge';
 import { ToastContainer } from '../components/Toast';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import './AgentPage.css';
 
 const POLL_INTERVAL_MS = 20_000; //20초 추후 폴링방식대신 서버에서 push방식으로 수정가능
@@ -15,11 +18,13 @@ const LOADING_MESSAGES = [
   "증거 보강 체크리스트를 구성하고 있습니다.",
   "AI 어드바이저 답변을 작성하고 있습니다.",
 ];
-
+// 메타데이터 판례 url 생성 및 링크로직 (구글검색이동)
 function createCaseSearchUrl(caseNumber) {
   return `https://www.google.com/search?q=${encodeURIComponent(`site:law.go.kr ${caseNumber}`)}`;
 }
 
+//GaugeCard 산재 승인 예상 비율 원형 게이지 렌더링함수 (75↑초록 / 50↑노랑 / 50↓빨강)
+//INPUT: score(0~100 숫자) 산출율 float->%전환 int + score별 원색상변환
 function GaugeCard({ score }) {
   const r = 45, circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
@@ -47,7 +52,8 @@ function GaugeCard({ score }) {
     </div>
   );
 }
-
+//check리스트 화면랜더링함수
+//INPUT: 증거목록명,목적,방법,이유 ,ㅁ형태의 체크박스여부,onToggle
 function ChecklistItem({ title, purpose, method, reason, checked, onToggle }) {
   const [open, setOpen] = useState(false);
   return (
@@ -79,7 +85,8 @@ function ChecklistItem({ title, purpose, method, reason, checked, onToggle }) {
     </div>
   );
 }
-
+//ChatBubble 채팅 말풍선 렌더링함수 (USER → 오른쪽 / AI → 왼쪽)
+//INPUT: message(텍스트), senderType('USER' | 'AI')
 function ChatBubble({ message, senderType }) {
   const isUser = senderType === 'USER';
   return (
@@ -89,6 +96,8 @@ function ChatBubble({ message, senderType }) {
   );
 }
 
+//AgentPage 산재 AI 분석 메인 페이지 렌더링함수 (폼입력→폴링대기→결과+추가질의 전체 흐름)
+//INPUT: user(로그인 유저 정보)
 export default function AgentPage({ user }) {
   const [view, setView] = useState('form'); // 'form' | 'pending' | 'result'
   const [form, setForm] = useState({ name:'', age:'', job:'', disease:'', inspector:'' });
@@ -101,10 +110,17 @@ export default function AgentPage({ user }) {
     { id:1, senderType:'AI', message:'안녕하세요. 산재 분석을 도와드릴 AI 어드바이저입니다. 왼쪽 폼을 먼저 작성해 주세요.' },
   ]);
   const [chatInput, setChatInput] = useState('');
+  // 브라우저 캐시용 어드바이저 컨텍스트 — 분석 완료 시 저장, 매 채팅 요청에 포함
+  const [chatContext, setChatContext] = useState(null);
+  // 이번 세션의 Q&A 히스토리 — 서버에 함께 전송해 대화 맥락 유지
+  const [advisorHistory, setAdvisorHistory] = useState([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [pendingMsgIndex, setPendingMsgIndex] = useState(0);
   const pollIntervalRef = useRef(null);
   const pendingTimerRef = useRef(null);
+  const resultRef = useRef(null); // PDF 캡처 대상 영역
 
+  //pending 상태일 때 1.8초마다 로딩 문구 순환
   useEffect(() => {
     if (view === 'pending') {
       setPendingMsgIndex(0);
@@ -117,12 +133,15 @@ export default function AgentPage({ user }) {
     return () => clearInterval(pendingTimerRef.current);
   }, [view]);
 
+  //showError 에러 토스트 알림 추가 / INPUT: message(에러 문자열)
   const showError = (message) => {
     const id = Date.now();
     setToasts(p => [...p, { id, message, type: 'error' }]);
   };
+  //removeToast 토스트 제거 / INPUT: id
   const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
 
+  //handleChange 폼 입력값 업데이트 / INPUT: input onChange 이벤트
   const handleChange = e => setForm(p => ({ ...p, [e.target.id]: e.target.value }));
 
   // 1단계: 분석 요청 → task_id 수신
@@ -190,6 +209,14 @@ export default function AgentPage({ user }) {
             reason: c.reason,
             checked: false,
           })));
+          // 어드바이저 컨텍스트를 브라우저에 캐싱 (raw API 포맷 그대로 저장)
+          // 추가질의 데이터 input
+          //input: chat_content(초기응답),checklist(증거목록),warning(주의사항)
+          setChatContext({
+            chat_content: d.chat_content,
+            checklist: d.checklist || [],
+            warning: d.warning || [],
+          });
           setView('result');
           setChatMsgs(p => [...p, { id: Date.now(), senderType: 'AI', message: d.chat_content }]);
 
@@ -220,15 +247,72 @@ export default function AgentPage({ user }) {
   const toggleCheck = (id) => {
     setChecklist(p => p.map(c => c.id === id ? { ...c, checked: !c.checked } : c));
   };
+  // 초기코드 
+  // const sendChat = () => {
+  //   if (!chatInput.trim()) return;
+  //   const msg = chatInput.trim();
+  //   setChatMsgs(p => [...p, { id:Date.now(), senderType:'USER', message:msg }]);
+  //   setChatInput('');
+  //   setTimeout(() => {
+  //     setChatMsgs(p => [...p, { id:Date.now()+1, senderType:'AI', message:'네, 말씀해 주신 내용을 바탕으로 추가 분석을 진행하겠습니다. 구체적인 서류 준비 방법이나 절차에 대해 더 알려드릴까요?' }]);
+  //   }, 600);
+  // };
 
-  const sendChat = () => {
-    if (!chatInput.trim()) return;
+  //브라우저 캐시 컨텍스트 + 히스토리를 서버에 전송해 실제 AI 응답 수신
+  const sendChat = async () => {
+    if (!chatInput.trim() || !chatContext || isChatLoading) return;
     const msg = chatInput.trim();
-    setChatMsgs(p => [...p, { id:Date.now(), senderType:'USER', message:msg }]);
+    setChatMsgs(p => [...p, { id: Date.now(), senderType: 'USER', message: msg }]);
     setChatInput('');
-    setTimeout(() => {
-      setChatMsgs(p => [...p, { id:Date.now()+1, senderType:'AI', message:'네, 말씀해 주신 내용을 바탕으로 추가 분석을 진행하겠습니다. 구체적인 서류 준비 방법이나 절차에 대해 더 알려드릴까요?' }]);
-    }, 600);
+    setIsChatLoading(true);
+    try {
+      const res = await fetch('/api/analysis/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: chatContext,
+          history: advisorHistory,
+          question: msg,
+        }),
+      });
+      if (!res.ok) throw new Error('답변 요청에 실패했습니다.');
+      const data = await res.json();
+      setChatMsgs(p => [...p, { id: Date.now(), senderType: 'AI', message: data.answer }]);
+      setAdvisorHistory(p => [
+        ...p,
+        { role: 'user', content: msg },
+        { role: 'ai', content: data.answer },
+      ]);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  //downloadPDF Pro 플랜 전용 — 결과 영역을 캡처해 PDF로 저장
+  //INPUT: user.subscribe(구독여부) — false면 다운로드 차단
+  const downloadPDF = async () => {
+    if (!user?.subscribe) return;
+    if (!resultRef.current) return;
+    try {
+      const canvas = await html2canvas(resultRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      let yOffset = 0;
+      // 결과 이미지가 A4 한 장 초과 시 페이지 분할
+      while (yOffset < imgHeight) {
+        pdf.addImage(imgData, 'PNG', 0, -yOffset, pageWidth, imgHeight);
+        yOffset += pageHeight;
+        if (yOffset < imgHeight) pdf.addPage();
+      }
+      pdf.save(`산내비_산재분석_${form.job}_${form.disease}.pdf`);
+    } catch {
+      showError('PDF 생성에 실패했습니다.');
+    }
   };
 
   const checked = checklist.filter(c => c.checked).length;
@@ -292,11 +376,14 @@ export default function AgentPage({ user }) {
                   <h2 style={{ marginTop:6 }}>분석 결과 리포트</h2>
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
-                  <Button variant="outline" size="sm">📄 PDF</Button>
+                  {user?.subscribe
+                    ? <Button variant="outline" size="sm" onClick={downloadPDF}>📄 PDF</Button>
+                    : <Button variant="outline" size="sm" onClick={() => showError('PDF 다운로드는 Pro 플랜에서 가능합니다.')}>📄 PDF 🔒</Button>
+                  }
                   <Button variant="ghost" size="sm" onClick={() => { setView('form'); setTaskId(null); }}>입력 수정</Button>
                 </div>
               </div>
-              <div className="result-body">
+              <div className="result-body" ref={resultRef}>
                 <GaugeCard score={result.score} />
 
                 <div className="evidence-card">
@@ -340,12 +427,13 @@ export default function AgentPage({ user }) {
             <input
               className="chat-input"
               type="text"
-              placeholder="AI에게 질문하기..."
+              placeholder={chatContext ? (isChatLoading ? 'AI가 답변 중입니다...' : 'AI에게 질문하기...') : '분석 완료 후 질문할 수 있습니다.'}
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendChat()}
+              disabled={!chatContext || isChatLoading}
             />
-            <button className="chat-send" onClick={sendChat} aria-label="전송">
+            <button className="chat-send" onClick={sendChat} aria-label="전송" disabled={!chatContext || isChatLoading}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>

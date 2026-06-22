@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
@@ -7,6 +7,7 @@ import { getBoardDetail, deleteBoard } from '../api/boardApi';
 import './BoardPage.css';
 
 export default function BoardDetailPage({ user, onLogout }) {
+  const fetchedBoardIdRef = useRef(null);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -25,15 +26,27 @@ export default function BoardDetailPage({ user, onLogout }) {
 
 
   useEffect(() => {
-    getBoardDetail(id)
-      .then((result) => {
+    if (!id) return;
+
+    // React StrictMode 개발 모드에서 useEffect가 두 번 실행되는 것 방지
+    if (fetchedBoardIdRef.current === id) {
+      return;
+    }
+
+    fetchedBoardIdRef.current = id;
+
+    const fetchPost = async () => {
+      try {
+        const result = await getBoardDetail(id);
         setPost(result.data);
-      })
-      .catch((error) => {
-        console.error('게시글 상세 조회 실패:', error);
-        alert(error.message || '게시글 상세 조회에 실패했습니다.');
-      });
-  }, [id]);
+      } catch (error) {
+        alert(error.message || '게시글을 불러오지 못했습니다.');
+        navigate('/board');
+      }
+    };
+
+    fetchPost();
+  }, [id, navigate]);
 
   const handleDeletePost = async () => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;

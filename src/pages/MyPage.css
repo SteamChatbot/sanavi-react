@@ -48,3 +48,40 @@
 .mp-history-disease{ font-size: 13px; font-weight: 600; color: var(--color-navy); }
 .mp-history-meta   { font-size: 11px; color: var(--color-gray-400); }
 .mp-history-actions{ display: flex; gap: 6px; flex-shrink: 0; }
+
+.mp-loading {
+  padding: 60px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-500);
+}
+
+.mp-select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mp-select {
+  height: 40px;
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  background: var(--color-white);
+  color: var(--color-gray-900);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+.mp-select:focus {
+  border-color: var(--color-primary);
+}
+
+.mp-error-message {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-danger);
+}

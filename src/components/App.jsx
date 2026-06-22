@@ -43,6 +43,11 @@ export default function App() {
     localStorage.removeItem('sanaviUser');
   };
 
+  const handleUpdateUser = (nextUser) => {
+    setUser(nextUser);
+    localStorage.setItem('sanaviUser', JSON.stringify(nextUser));
+  };
+
   return (
     <BrowserRouter>
       <Routes>
@@ -59,7 +64,7 @@ export default function App() {
         <Route path="/match"              element={<MatchPage        user={user} />} />
         <Route path="/match/write"        element={<MatchWritePage   user={user} />} />
         <Route path="/match/:id/bids"     element={<MatchBidListPage user={user} />} />
-        <Route path="/mypage"             element={<MyPage           user={user} />} />
+        <Route path="/mypage"             element={<MyPage           user={user} onLogout={handleLogout}  onUserUpdate={handleUpdateUser}/>} />
         <Route path="/analysis/:id"       element={<AnalysisDetailPage user={user} />} />
         <Route path="*"                   element={<Navigate to="/" replace />} />
       </Routes>

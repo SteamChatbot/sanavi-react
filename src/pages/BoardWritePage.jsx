@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
+import {
+    getBoardDetail,
+    createBoard,
+    updateBoard,
+} from '../api/boardApi';
 import './BoardPage.css';
 
-export default function BoardWritePage({ user }) {
+export default function BoardWritePage({ user, onLogout }) {
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -19,19 +24,13 @@ export default function BoardWritePage({ user }) {
 
         const fetchPost = async () => {
             try {
-                const response = await fetch(`/api/boards/${id}`);
+                const result = await getBoardDetail(id);
 
-                if (!response.ok) {
-                    throw new Error(`게시글 조회 실패: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                setTitle(result.data.title);
-                setContent(result.data.content);
+                setTitle(result.data.title || '');
+                setContent(result.data.content || '');
             } catch (error) {
-                console.error(error);
-                alert('게시글을 불러오지 못했습니다.');
+                console.error('수정할 게시글 조회 실패:', error);
+                alert(error.message || '게시글을 불러오지 못했습니다.');
                 navigate('/board');
             }
         };
@@ -47,36 +46,25 @@ export default function BoardWritePage({ user }) {
             return;
         }
 
+        const payload = {
+            userId: user?.userId || 'testuser',
+            nickname: user?.name || 'tester',
+            title: title.trim(),
+            content: content.trim(),
+        };
+
         try {
-            const response = await fetch(
-                isEdit ? `/api/boards/${id}` : '/api/boards',
-                {
-                    method: isEdit ? 'PATCH' : 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: user?.userId || 'testuser',
-                        nickname: user?.name || 'tester',
-                        title: title.trim(),
-                        content: content.trim(),
-                    }),
-                }
-            );
-
-            const responseText = await response.text();
-
-            if (!response.ok) {
-                throw new Error(
-                    `HTTP ${response.status}: ${responseText || '응답 내용 없음'}`
-                );
+            if (isEdit) {
+                await updateBoard(id, payload);
+            } else {
+                await createBoard(payload);
             }
 
             alert(isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.');
             navigate(isEdit ? `/board/${id}` : '/board');
         } catch (error) {
             console.error('게시글 저장 오류:', error);
-            alert(error.message);
+            alert(error.message || '게시글 저장에 실패했습니다.');
         }
     };
 
@@ -86,7 +74,7 @@ export default function BoardWritePage({ user }) {
 
     return (
         <div className="board-page">
-            <Navbar user={user} />
+            <Navbar user={user} onLogout={onLogout} />
 
             <div className="board-container board-container--write">
                 <div className="breadcrumb">

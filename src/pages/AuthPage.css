@@ -76,3 +76,11 @@
 .step-bar__item--inactive { background: var(--color-gray-100); border-color: var(--color-gray-200); color: var(--color-gray-400); }
 .step-bar__line { flex: 1; height: 2px; background: var(--color-gray-200); }
 .step-bar__line--done   { background: var(--color-primary); }
+
+/* 에러 메시지 스타일 */
+.auth-error-message {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-danger);
+}

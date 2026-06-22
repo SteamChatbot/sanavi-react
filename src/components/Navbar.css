@@ -45,3 +45,26 @@
   gap: 8px;
   margin-left: auto;
 }
+
+.navbar__user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  transition: background .15s;
+}
+
+.navbar__user:hover {
+  background: var(--color-gray-50);
+}
+
+.navbar__username {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-gray-700);
+  max-width: 90px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

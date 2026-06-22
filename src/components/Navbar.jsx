@@ -1,26 +1,36 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Avatar from './Avatar';
 import Badge from './Badge';
 import Button from './Button';
 import './Navbar.css';
 
 const NAV_LINKS = [
-  { to: '/',          label: '홈' },
-  { to: '/agent',     label: '에이전트' },
-  { to: '/board',     label: '게시판' },
+  { to: '/', label: '홈' },
+  { to: '/agent', label: '에이전트' },
+  { to: '/board', label: '게시판' },
   { to: '/subscribe', label: '구독' },
-  { to: '/match',     label: '매칭' },
+  { to: '/match', label: '매칭' },
 ];
 
-/**
- * Navbar
- * @param {object|null} user  — null이면 비로그인
- * @param {'USER'|'ADMIN'} user.role
- * @param {string} user.name
- */
-export default function Navbar({ user = null }) {
+export default function Navbar({ user = null, onLogout }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('sanaviUser');
+
+    if (onLogout) {
+      onLogout();
+      navigate('/');
+      return;
+    }
+
+    window.location.href = '/';
+  };
+
+  const displayName = user?.name || user?.nickname || user?.userId || '사용자';
+  const role = user?.role || 'USER';
 
   return (
     <header className="navbar">
@@ -34,13 +44,27 @@ export default function Navbar({ user = null }) {
             <Link
               key={to}
               to={to}
-              className={['navbar__link', pathname === to ? 'navbar__link--active' : ''].filter(Boolean).join(' ')}
+              className={[
+                'navbar__link',
+                pathname === to ? 'navbar__link--active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
               {label}
             </Link>
           ))}
-          {user?.role === 'ADMIN' && (
-            <Link to="/admin" className={['navbar__link', pathname === '/admin' ? 'navbar__link--active' : ''].filter(Boolean).join(' ')}>
+
+          {role === 'ADMIN' && (
+            <Link
+              to="/admin"
+              className={[
+                'navbar__link',
+                pathname === '/admin' ? 'navbar__link--active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
               관리
             </Link>
           )}
@@ -49,13 +73,47 @@ export default function Navbar({ user = null }) {
         <div className="navbar__right">
           {user ? (
             <>
-              {user.role === 'ADMIN' && <Badge type="admin">ADMIN</Badge>}
-              <Avatar name={user.name} size="sm" color={user.role === 'ADMIN' ? 'admin' : undefined} />
+              {role === 'ADMIN' && <Badge type="admin">ADMIN</Badge>}
+
+              <Link to="/mypage" className="navbar__user">
+                <Avatar
+                  name={displayName}
+                  size="sm"
+                  color={role === 'ADMIN' ? 'admin' : undefined}
+                />
+                <span className="navbar__username">
+                  {displayName}
+                </span>
+              </Link>
+
+              <Link to="/mypage">
+                <Button variant="outline" size="sm">
+                  마이페이지
+                </Button>
+              </Link>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </Button>
             </>
           ) : (
             <>
-              <Link to="/login"><Button variant="outline" size="sm">로그인</Button></Link>
-              <Link to="/signup"><Button variant="primary" size="sm">회원가입</Button></Link>
+              <Link to="/login">
+                <Button variant="outline" size="sm">
+                  로그인
+                </Button>
+              </Link>
+
+              <Link to="/signup">
+                <Button variant="primary" size="sm">
+                  회원가입
+                </Button>
+              </Link>
             </>
           )}
         </div>

@@ -3,59 +3,67 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Pagination from '../components/Pagination';
+import { getBoardList, deleteBoard } from '../api/boardApi';
 import './BoardPage.css';
 
-export default function BoardListPage({ user }) {
+export default function BoardListPage({ user, onLogout }) {
   const isAdmin = user?.role === 'ADMIN';
+
   const [search, setSearch] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
 
   const size = 10;
 
-  const fetchBoards = () => {
-    fetch(`/api/boards?page=${page}&size=${size}&searchType=all&keyword=${search}`)
-      .then((res) => res.json())
-      .then((result) => {
-        setPosts(result.data.contents);
-        setTotalCount(result.data.totalCount);
-      })
-      .catch((error) => {
-        console.error('게시글 목록 조회 실패:', error);
+  const fetchBoards = async ({ pageValue = page, keywordValue = keyword } = {}) => {
+    try {
+      const result = await getBoardList({
+        page: pageValue,
+        size,
+        searchType: 'all',
+        keyword: keywordValue,
       });
+
+      setPosts(result.data?.contents || []);
+      setTotalCount(result.data?.totalCount || 0);
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
+      alert(error.message || '게시글 목록 조회에 실패했습니다.');
+    }
   };
 
   useEffect(() => {
     fetchBoards();
-  }, [page]);
+  }, [page, keyword]);
 
   const handleSearch = (e) => {
     if (e.key !== 'Enter') return;
+
+    const nextKeyword = search.trim();
+
     setPage(1);
-    fetchBoards();
+    setKeyword(nextKeyword);
   };
 
-  const handleDelete = (boardId) => {
+  const handleDelete = async (boardId) => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
 
-    fetch(`/api/boards/${boardId}`, {
-      method: 'DELETE',
-    })
-      .then((res) => res.json())
-      .then(() => {
-        fetchBoards();
-      })
-      .catch((error) => {
-        console.error('게시글 삭제 실패:', error);
-      });
+    try {
+      await deleteBoard(boardId);
+      await fetchBoards();
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
+      alert(error.message || '게시글 삭제에 실패했습니다.');
+    }
   };
 
   const totalPages = Math.ceil(totalCount / size) || 1;
 
   return (
     <div className="board-page">
-      <Navbar user={user} />
+      <Navbar user={user} onLogout={onLogout} />
       <div className="board-container">
         <div className="board-header">
           <h1 className="board-header__title">후기 게시판</h1>
@@ -111,7 +119,7 @@ export default function BoardListPage({ user }) {
                   </div>
                 </div>
 
-                <div className="board-row__view">{post.viewCount}</div>
+                <div className="board-row__view">{post.viewCount ?? 0}</div>
                 <div className="board-row__date">
                   {post.createdAt?.slice(0, 10)}
                 </div>

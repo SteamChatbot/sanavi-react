@@ -3,9 +3,10 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Avatar from '../components/Avatar';
+import { getBoardDetail, deleteBoard } from '../api/boardApi';
 import './BoardPage.css';
 
-export default function BoardDetailPage({ user }) {
+export default function BoardDetailPage({ user, onLogout }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -24,13 +25,13 @@ export default function BoardDetailPage({ user }) {
 
 
   useEffect(() => {
-    fetch(`/api/boards/${id}`)
-      .then((res) => res.json())
+    getBoardDetail(id)
       .then((result) => {
         setPost(result.data);
       })
       .catch((error) => {
         console.error('게시글 상세 조회 실패:', error);
+        alert(error.message || '게시글 상세 조회에 실패했습니다.');
       });
   }, [id]);
 
@@ -38,19 +39,13 @@ export default function BoardDetailPage({ user }) {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`/api/boards/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error(`게시글 삭제 실패: ${response.status}`);
-      }
+      await deleteBoard(id);
 
       alert('게시글이 삭제되었습니다.');
       navigate('/board');
     } catch (error) {
-      console.error(error);
-      alert('게시글 삭제에 실패했습니다.');
+      console.error('게시글 삭제 실패:', error);
+      alert(error.message || '게시글 삭제에 실패했습니다.');
     }
   };
 
@@ -78,7 +73,7 @@ export default function BoardDetailPage({ user }) {
   if (!post) {
     return (
       <div className="board-page">
-        <Navbar user={user} />
+        <Navbar user={user} onLogout={onLogout} />
         <div className="board-container board-container--detail">
           <div className="board-empty">게시글을 불러오는 중입니다.</div>
         </div>
@@ -91,7 +86,7 @@ export default function BoardDetailPage({ user }) {
 
   return (
     <div className="board-page">
-      <Navbar user={user} />
+      <Navbar user={user} onLogout={onLogout} />
       <div className="board-container board-container--detail">
 
         <div className="breadcrumb">

@@ -17,11 +17,31 @@ import MatchBidListPage     from '../pages/MatchBidListPage';
 import MyPage               from '../pages/MyPage';
 import AnalysisDetailPage   from '../pages/AnalysisDetailPage';
 
+function getSavedUser() {
+  try {
+    const saved = localStorage.getItem('sanaviUser');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    localStorage.removeItem('sanaviUser');
+    return null;
+  }
+}
+
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getSavedUser);
   // 개발용 빠른 토글
   // setUser({ name:'김', role:'USER' })  → 로그인
   // setUser({ name:'관', role:'ADMIN' }) → 관리자
+
+  const handleLogin = (loginUser) => {
+    setUser(loginUser);
+    localStorage.setItem('sanaviUser', JSON.stringify(loginUser));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('sanaviUser');
+  };
 
   return (
     <BrowserRouter>

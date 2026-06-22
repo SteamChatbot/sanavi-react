@@ -7,6 +7,11 @@ import Badge from '../components/Badge';
 import { ToastContainer } from '../components/Toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { submitAnalysis, pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
+import GaugeCard from '../components/GaugeCard';
+import ChecklistItem from '../components/ChecklistItem';
+import ChatBubble from '../components/ChatBubble';
+import { useToast } from '../hooks/useToast';
 import './AgentPage.css';
 
 const POLL_INTERVAL_MS = 20_000; //20초 추후 폴링방식대신 서버에서 push방식으로 수정가능
@@ -23,89 +28,17 @@ function createCaseSearchUrl(caseNumber) {
   return `https://www.google.com/search?q=${encodeURIComponent(`site:law.go.kr ${caseNumber}`)}`;
 }
 
-//GaugeCard 산재 승인 예상 비율 원형 게이지 렌더링함수 (75↑초록 / 50↑노랑 / 50↓빨강)
-//INPUT: score(0~100 숫자) 산출율 float->%전환 int + score별 원색상변환
-function GaugeCard({ score }) {
-  const r = 45, circ = 2 * Math.PI * r;
-  const offset = circ * (1 - score / 100);
-  const color = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
-  const level = score >= 75 ? '높음' : score >= 50 ? '보통' : '낮음';
-  return (
-    <div className="gauge-card">
-      <div className="gauge-card__circle-wrap">
-        <svg viewBox="0 0 100 100" width="150" height="150">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#e2e8f0" strokeWidth="9" />
-          <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="9"
-            strokeDasharray={circ} strokeDashoffset={offset}
-            strokeLinecap="round" transform="rotate(-90 50 50)"
-            style={{ transition:'stroke-dashoffset 1s ease-out' }} />
-        </svg>
-        <div className="gauge-card__overlay">
-          <span className="gauge-card__score" style={{ color }}>{score}<small>%</small></span>
-          <span className="gauge-card__level" style={{ background:`${color}22`, color }}>{level}</span>
-        </div>
-      </div>
-      <div className="gauge-card__title">산재 승인 예상 비율</div>
-      <div className="gauge-card__sub">
-        직업·질병 조합 통계 기반 참고 지표 — 실제 결과와 다를 수 있습니다
-      </div>
-    </div>
-  );
-}
-//check리스트 화면랜더링함수
-//INPUT: 증거목록명,목적,방법,이유 ,ㅁ형태의 체크박스여부,onToggle
-function ChecklistItem({ title, purpose, method, reason, checked, onToggle }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className={`checklist-item${checked ? ' checklist-item--checked' : ''}`}>
-      <div className="checklist-item__top">
-        <button
-          className={`checklist-item__check${checked ? ' checklist-item__check--done' : ''}`}
-          onClick={onToggle} aria-label={checked ? '완료 취소' : '완료 표시'}
-        >{checked ? '✓' : ''}</button>
-        <button className="checklist-item__text-btn" onClick={onToggle}>
-          <span className="checklist-item__title">{title}</span>
-          {purpose && <span className="checklist-item__purpose">{purpose}</span>}
-        </button>
-        <button
-          className="checklist-item__toggle"
-          onClick={() => setOpen(o => !o)}
-          aria-expanded={open}
-        >
-          자세히 보기 <span className="checklist-item__arrow">{open ? '▲' : '▼'}</span>
-        </button>
-      </div>
-      {open && (
-        <div className="checklist-item__detail">
-          {purpose && <p><strong>[목적]</strong> {purpose}</p>}
-          <p><strong>[방법]</strong> {method}</p>
-          <p><strong>[이유]</strong> {reason}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-//ChatBubble 채팅 말풍선 렌더링함수 (USER → 오른쪽 / AI → 왼쪽)
-//INPUT: message(텍스트), senderType('USER' | 'AI')
-function ChatBubble({ message, senderType }) {
-  const isUser = senderType === 'USER';
-  return (
-    <div className={`chat-bubble${isUser ? ' chat-bubble--user' : ' chat-bubble--bot'}`}>
-      {message}
-    </div>
-  );
-}
 
 //AgentPage 산재 AI 분석 메인 페이지 렌더링함수 (폼입력→폴링대기→결과+추가질의 전체 흐름)
 //INPUT: user(로그인 유저 정보)
-export default function AgentPage({ user }) {
-  const [view, setView] = useState('form'); // 'form' | 'pending' | 'result'
+export default function AgentPage({ user, onLogout }) {
+  const [view, setView] = useState('form'); // 'form' | 'pending' | 'result' 상태변화관리
   const [form, setForm] = useState({ name:'', age:'', job:'', disease:'', inspector:'' });
   const [taskId, setTaskId] = useState(null);
   const [result, setResult] = useState(null);
   const [checklist, setChecklist] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [toasts, setToasts] = useState([]);
+  const { toasts, showError, removeToast } = useToast();
   const [chatMsgs, setChatMsgs] = useState([
     { id:1, senderType:'AI', message:'안녕하세요. 산재 분석을 도와드릴 AI 어드바이저입니다. 왼쪽 폼을 먼저 작성해 주세요.' },
   ]);
@@ -133,14 +66,6 @@ export default function AgentPage({ user }) {
     return () => clearInterval(pendingTimerRef.current);
   }, [view]);
 
-  //showError 에러 토스트 알림 추가 / INPUT: message(에러 문자열)
-  const showError = (message) => {
-    const id = Date.now();
-    setToasts(p => [...p, { id, message, type: 'error' }]);
-  };
-  //removeToast 토스트 제거 / INPUT: id
-  const removeToast = (id) => setToasts(p => p.filter(t => t.id !== id));
-
   //handleChange 폼 입력값 업데이트 / INPUT: input onChange 이벤트
   const handleChange = e => setForm(p => ({ ...p, [e.target.id]: e.target.value }));
 
@@ -149,22 +74,7 @@ export default function AgentPage({ user }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('/api/analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          age: parseInt(form.age, 10),
-          job: form.job,
-          disease: form.disease,
-          inspector: form.inspector,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || '분석 요청에 실패했습니다.');
-      }
-      const accepted = await res.json(); // { task_id, status: "PROCESSING" }
+      const accepted = await submitAnalysis(form, user); // { task_id, status: "PROCESSING" }
       setTaskId(accepted.task_id);
       setView('pending');
       setChatMsgs(p => [...p, {
@@ -184,12 +94,7 @@ export default function AgentPage({ user }) {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/analysis/${taskId}`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || '결과 조회에 실패했습니다.');
-        }
-        const body = await res.json(); // { success, status, message, data }
+        const body = await pollAnalysis(taskId); // { success, status, message, data }
 
         if (body.status === 'COMPLETED' && body.data) {
           clearInterval(pollIntervalRef.current);
@@ -247,17 +152,6 @@ export default function AgentPage({ user }) {
   const toggleCheck = (id) => {
     setChecklist(p => p.map(c => c.id === id ? { ...c, checked: !c.checked } : c));
   };
-  // 초기코드 
-  // const sendChat = () => {
-  //   if (!chatInput.trim()) return;
-  //   const msg = chatInput.trim();
-  //   setChatMsgs(p => [...p, { id:Date.now(), senderType:'USER', message:msg }]);
-  //   setChatInput('');
-  //   setTimeout(() => {
-  //     setChatMsgs(p => [...p, { id:Date.now()+1, senderType:'AI', message:'네, 말씀해 주신 내용을 바탕으로 추가 분석을 진행하겠습니다. 구체적인 서류 준비 방법이나 절차에 대해 더 알려드릴까요?' }]);
-  //   }, 600);
-  // };
-
   //브라우저 캐시 컨텍스트 + 히스토리를 서버에 전송해 실제 AI 응답 수신
   const sendChat = async () => {
     if (!chatInput.trim() || !chatContext || isChatLoading) return;
@@ -266,17 +160,7 @@ export default function AgentPage({ user }) {
     setChatInput('');
     setIsChatLoading(true);
     try {
-      const res = await fetch('/api/analysis/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          context: chatContext,
-          history: advisorHistory,
-          question: msg,
-        }),
-      });
-      if (!res.ok) throw new Error('답변 요청에 실패했습니다.');
-      const data = await res.json();
+      const data = await sendAdvisorChat({ context: chatContext, history: advisorHistory, question: msg });
       setChatMsgs(p => [...p, { id: Date.now(), senderType: 'AI', message: data.answer }]);
       setAdvisorHistory(p => [
         ...p,
@@ -319,7 +203,7 @@ export default function AgentPage({ user }) {
 
   return (
     <div className="agent-page">
-      <Navbar user={user} />
+      <Navbar user={user} onLogout={onLogout}/>
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       {loading && (
         <div className="loading-modal">

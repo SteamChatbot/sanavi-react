@@ -1,3 +1,4 @@
+// 텍스트 입력 / 멀티라인 textarea — label·placeholder·error props 지원
 import React from 'react';
 import './Input.css';
 

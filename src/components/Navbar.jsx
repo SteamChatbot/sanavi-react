@@ -1,3 +1,4 @@
+// 상단 네비게이션 바 — 로그인 상태·현재 경로에 따라 메뉴 및 버튼 전환
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Avatar from './Avatar';

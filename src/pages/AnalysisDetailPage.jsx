@@ -1,3 +1,4 @@
+//분석 detail html
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -5,27 +6,28 @@ import Badge from '../components/Badge';
 import Button from '../components/Button';
 import './AnalysisDetailPage.css';
 
-const SAMPLE = {
-  id: 1, disease: '요추 추간판 탈출증', job: '건설현장 용접공',
-  inspector: '건설현장에서 10년간 용접 작업 중 허리 부상을 입었습니다.',
-  score: 72, createdAt: '2026.06.08',
-  checklist: [
-    { id:1, title:'진단서',        method:'병원에서 초진 기록과 현재 진단서를 함께 발급받으세요.', reason:'질병과 사고 시점의 연결성을 보여주는 핵심 자료입니다.', checked:true },
-    { id:2, title:'근무기록',      method:'출퇴근 기록, 작업일지, 배치표를 확보하세요.', reason:'업무 수행 중 발생했다는 점을 설명하는 근거가 됩니다.', checked:true },
-    { id:3, title:'목격자 진술',   method:'동료나 현장 책임자의 진술을 정리하세요.', reason:'사고 상황을 보강하는 자료로 활용됩니다.', checked:false },
-    { id:4, title:'작업환경 자료', method:'현장 사진, CCTV, 작업환경 측정자료를 확인하세요.', reason:'업무 환경과 질병의 관련성을 설명할 수 있습니다.', checked:false },
-  ],
-  warnings: [
-    '업무 외 시간 발생 사고는 별도 입증 자료 필수',
-    '지병이 있을 경우 업무 기여도를 강조해야 합니다',
-  ],
-  metacontent: ['서울행정법원 2024구합12345', '대법원 2023두98765'],
-  chatHistory: [
-    { id:1, senderType:'AI',   message:'안녕하세요. 산재 분석 결과를 안내해 드립니다.' },
-    { id:2, senderType:'USER', message:'추가로 어떤 서류를 준비하면 좋을까요?' },
-    { id:3, senderType:'AI',   message:'목격자 진술과 작업환경 자료를 우선 확보하는 것을 권장드립니다. 특히 현장 사진은 시간이 지날수록 확보가 어려워집니다.' },
-  ],
-};
+//샘플데이터
+// const SAMPLE = {
+//   id: 1, disease: '요추 추간판 탈출증', job: '건설현장 용접공',
+//   inspector: '건설현장에서 10년간 용접 작업 중 허리 부상을 입었습니다.',
+//   score: 72, createdAt: '2026.06.08',
+//   checklist: [
+//     { id:1, title:'진단서',        method:'병원에서 초진 기록과 현재 진단서를 함께 발급받으세요.', reason:'질병과 사고 시점의 연결성을 보여주는 핵심 자료입니다.', checked:true },
+//     { id:2, title:'근무기록',      method:'출퇴근 기록, 작업일지, 배치표를 확보하세요.', reason:'업무 수행 중 발생했다는 점을 설명하는 근거가 됩니다.', checked:true },
+//     { id:3, title:'목격자 진술',   method:'동료나 현장 책임자의 진술을 정리하세요.', reason:'사고 상황을 보강하는 자료로 활용됩니다.', checked:false },
+//     { id:4, title:'작업환경 자료', method:'현장 사진, CCTV, 작업환경 측정자료를 확인하세요.', reason:'업무 환경과 질병의 관련성을 설명할 수 있습니다.', checked:false },
+//   ],
+//   warnings: [
+//     '업무 외 시간 발생 사고는 별도 입증 자료 필수',
+//     '지병이 있을 경우 업무 기여도를 강조해야 합니다',
+//   ],
+//   metacontent: ['서울행정법원 2024구합12345', '대법원 2023두98765'],
+//   chatHistory: [
+//     { id:1, senderType:'AI',   message:'안녕하세요. 산재 분석 결과를 안내해 드립니다.' },
+//     { id:2, senderType:'USER', message:'추가로 어떤 서류를 준비하면 좋을까요?' },
+//     { id:3, senderType:'AI',   message:'목격자 진술과 작업환경 자료를 우선 확보하는 것을 권장드립니다. 특히 현장 사진은 시간이 지날수록 확보가 어려워집니다.' },
+//   ],
+// };
 
 function GaugeCircle({ score }) {
   const r = 40, circ = 2 * Math.PI * r;

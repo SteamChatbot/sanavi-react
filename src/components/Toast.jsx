@@ -1,3 +1,4 @@
+// 알림 토스트 + ToastContainer — duration(기본 3초) 후 자동 닫힘, type(error/info/success) 색상 분기
 import React, { useEffect } from 'react';
 import './Toast.css';
 

@@ -1,3 +1,4 @@
+// 상태 뱃지 — type(ok/warn/error/info)별 색상 표시
 import React from 'react';
 import './Badge.css';
 

@@ -1,3 +1,4 @@
+// 페이지 번호 네비게이션 — currentPage/totalPages/onPageChange props
 import React from 'react';
 import './Pagination.css';
 

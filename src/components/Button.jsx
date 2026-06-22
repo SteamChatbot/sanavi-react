@@ -1,3 +1,4 @@
+// 공통 버튼 — variant(primary/outline/ghost)·size(sm/md/lg)·fullWidth props 지원
 import React from 'react';
 import './Button.css';
 

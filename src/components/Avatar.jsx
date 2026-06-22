@@ -1,3 +1,4 @@
+// 사용자 이니셜 아바타 — 이름 첫 글자 + 색상 자동 배정
 import React from 'react';
 import './Avatar.css';
 

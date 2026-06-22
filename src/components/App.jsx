@@ -1,3 +1,4 @@
+// 루트 라우터 — 로그인 상태에 따른 페이지 라우팅 및 전역 인증 상태 관리
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import '../styles/global.css';

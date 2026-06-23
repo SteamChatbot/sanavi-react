@@ -6,7 +6,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import Avatar from '../components/Avatar';
-import Pagination from '../components/Pagination';
+import AnalysisHistoryList from '../components/AnalysisHistoryList';
 
 import {
   getMemberInfo,
@@ -15,30 +15,30 @@ import {
 
 import './MyPage.css';
 
+
 const SAMPLE_HISTORY = [
-  { id: 1, disease: '요추 추간판 탈출증', job: '건설현장 용접공', score: 72, date: '2026.06.08' },
-  { id: 2, disease: '직업성 난청', job: '제조업 기계 조작', score: 58, date: '2026.06.05' },
-  { id: 3, disease: '뇌경색', job: '장거리 운전기사', score: 81, date: '2026.05.28' },
+  {
+    id: 1,
+    disease: '요추 추간판 탈출증',
+    job: '건설현장 용접공',
+    baseScore: 72,
+    createdAt: '2026-06-08T10:00:00',
+  },
+  {
+    id: 2,
+    disease: '직업성 난청',
+    job: '제조업 기계 조작',
+    baseScore: 58,
+    createdAt: '2026-06-05T10:00:00',
+  },
+  {
+    id: 3,
+    disease: '뇌경색',
+    job: '장거리 운전기사',
+    baseScore: 81,
+    createdAt: '2026-05-28T10:00:00',
+  },
 ];
-
-const SAMPLE_MATCHES = [
-  { id: 1, title: '요추 추간판 탈출증 산재 신청', status: 'BIDDING', price: 2000000, date: '2026.06.09' },
-  { id: 2, title: '직업성 난청 의뢰', status: 'CLOSED', price: 1500000, date: '2026.06.01' },
-];
-
-const STATUS_MAP = {
-  OPEN: '모집중',
-  BIDDING: '입찰중',
-  CLOSED: '마감',
-  CANCELLED: '취소',
-};
-
-const STATUS_BADGE = {
-  OPEN: 'primary',
-  BIDDING: 'pending',
-  CLOSED: 'ok',
-  CANCELLED: 'rejected',
-};
 
 function normalizeRole(role) {
   if (!role) return 'USER';
@@ -61,8 +61,6 @@ function toBooleanSubscribe(value) {
 export default function MyPage({ user, onLogout, onUserUpdate }) {
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState('analysis');
-
   const [member, setMember] = useState(null);
 
   const [form, setForm] = useState({
@@ -81,6 +79,9 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
 
   const [historyPage, setHistoryPage] = useState(1);
   const [history, setHistory] = useState(SAMPLE_HISTORY);
+
+  const historyLoading = false;
+  const historyTotalPages = 1;
 
   const userId = user?.userId;
 
@@ -197,11 +198,6 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
     setHistory((prev) => prev.filter((h) => h.id !== id));
   };
 
-  const scoreColor = (score) => {
-    if (score >= 75) return '#10b981';
-    if (score >= 50) return '#f59e0b';
-    return '#ef4444';
-  };
 
   const displayName = form.name || user?.name || user?.userId || '사용자';
   const role = normalizeRole(member?.role || user?.role);
@@ -352,101 +348,27 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
           </section>
 
           <section className="mp-history-card">
-            <div className="mp-tabs">
-              <button
-                className={`mp-tab${tab === 'analysis' ? ' mp-tab--active' : ''}`}
-                onClick={() => setTab('analysis')}
-              >
-                분석 이력 <span className="mp-tab-count">{history.length}</span>
-              </button>
+            <div className="mp-history-header">
+              <div>
+                <h2 className="mp-history-title">분석 이력</h2>
+                <p className="mp-history-subtitle">
+                  이전에 진행한 AI 산재 분석 결과를 확인할 수 있습니다.
+                </p>
+              </div>
 
-              <button
-                className={`mp-tab${tab === 'match' ? ' mp-tab--active' : ''}`}
-                onClick={() => setTab('match')}
-              >
-                의뢰 이력 <span className="mp-tab-count">{SAMPLE_MATCHES.length}</span>
-              </button>
+              <span className="mp-history-count">
+                총 {history.length}건
+              </span>
             </div>
 
-            {tab === 'analysis' && (
-              <div className="mp-list">
-                {history.length === 0 ? (
-                  <div className="mp-empty">
-                    분석 이력이 없습니다.
-                  </div>
-                ) : (
-                  history.map((h) => (
-                    <div key={h.id} className="mp-history-row">
-                      <div
-                        className="mp-history-score"
-                        style={{ color: scoreColor(h.score) }}
-                      >
-                        {h.score}%
-                      </div>
-
-                      <div className="mp-history-info">
-                        <div className="mp-history-disease">
-                          {h.disease}
-                        </div>
-                        <div className="mp-history-meta">
-                          {h.job} · {h.date}
-                        </div>
-                      </div>
-
-                      <div className="mp-history-actions">
-                        <Link to={`/analysis/${h.id}`}>
-                          <Button variant="outline" size="xs">
-                            상세보기
-                          </Button>
-                        </Link>
-
-                        <Button
-                          variant="danger"
-                          size="xs"
-                          onClick={() => handleDeleteAnalysis(h.id)}
-                        >
-                          삭제
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                <Pagination
-                  currentPage={historyPage}
-                  totalPages={3}
-                  onPageChange={setHistoryPage}
-                />
-              </div>
-            )}
-
-            {tab === 'match' && (
-              <div className="mp-list">
-                {SAMPLE_MATCHES.map((m) => (
-                  <div key={m.id} className="mp-history-row">
-                    <Badge type={STATUS_BADGE[m.status]}>
-                      {STATUS_MAP[m.status]}
-                    </Badge>
-
-                    <div className="mp-history-info">
-                      <div className="mp-history-disease">
-                        {m.title}
-                      </div>
-
-                      <div className="mp-history-meta">
-                        희망 보수 ₩{m.price.toLocaleString()} · {m.date}
-                      </div>
-                    </div>
-
-                    <Link to={`/match/${m.id}/bids`}>
-                      <Button variant="outline" size="xs">
-                        입찰 목록
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
+            <AnalysisHistoryList
+              items={history}
+              loading={historyLoading}
+              page={historyPage}
+              totalPages={historyTotalPages}
+              onPageChange={setHistoryPage}
+              onDelete={handleDeleteAnalysis}
+            />
           </section>
         </div>
       </div>

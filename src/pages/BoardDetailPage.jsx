@@ -151,6 +151,25 @@ export default function BoardDetailPage({ user, onLogout }) {
           ))}
         </div>
 
+        {post.files && post.files.length > 0 && (
+          <section className="board-detail__files">
+            <h3 className="board-detail__files-title">첨부파일</h3>
+
+            <div className="board-detail__file-list">
+              {post.files.map((file) => (
+                <a
+                  key={file.fileId}
+                  className="board-detail__file"
+                  href={file.downloadUrl}
+                >
+                  <span>{file.originalName}</span>
+                  <em>{(file.fileSize / 1024).toFixed(1)} KB</em>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="detail-comments">
           <h2 className="comments-title">댓글 {comments.length}</h2>
 

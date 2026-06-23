@@ -24,11 +24,21 @@ export function getBoardDetail(boardId) {
   return request(`/api/boards/${boardId}`);
 }
 
-export function createBoard(payload) {
+export function createBoard(payload, files = []) {
+  const formData = new FormData();
+
+  formData.append('userId', payload.userId);
+  formData.append('nickname', payload.nickname);
+  formData.append('title', payload.title);
+  formData.append('content', payload.content);
+
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
   return request('/api/boards', {
     method: 'POST',
-    headers: JSON_HEADERS,
-    body: JSON.stringify(payload),
+    body: formData,
   });
 }
 
@@ -42,6 +52,25 @@ export function updateBoard(boardId, payload) {
 
 export function deleteBoard(boardId) {
   return request(`/api/boards/${boardId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function uploadBoardFiles(boardId, files = []) {
+  const formData = new FormData();
+
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
+  return request(`/api/boards/${boardId}/files`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export function deleteBoardFile(boardId, fileId) {
+  return request(`/api/boards/${boardId}/files/${fileId}`, {
     method: 'DELETE',
   });
 }

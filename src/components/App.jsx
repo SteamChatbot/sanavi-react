@@ -55,7 +55,7 @@ export default function App() {
         <Route path="/"               element={<LandingPage     user={user} />} />
         <Route path="/login"          element={<LoginPage        onLogin={setUser} />} />
         <Route path="/signup"         element={<SignupPage       onLogin={setUser} />} />
-        <Route path="/agent"          element={<AgentPage        user={user} />} />
+        <Route path="/agent"          element={<AgentPage        user={user} onLogout={handleLogout} />} />
         <Route path="/board"          element={<BoardListPage    user={user} />} />
         <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
         <Route path="/board/:id/edit" element={<BoardWritePage user={user} />}/>

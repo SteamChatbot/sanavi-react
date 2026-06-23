@@ -12,33 +12,11 @@ import {
   getMemberInfo,
   updateMemberInfo,
 } from '../api/memberApi';
+import { fetchMyHistory, deleteMyAnalysis } from '../api/analysisApi';
 
 import './MyPage.css';
 
 
-const SAMPLE_HISTORY = [
-  {
-    id: 1,
-    disease: '요추 추간판 탈출증',
-    job: '건설현장 용접공',
-    baseScore: 72,
-    createdAt: '2026-06-08T10:00:00',
-  },
-  {
-    id: 2,
-    disease: '직업성 난청',
-    job: '제조업 기계 조작',
-    baseScore: 58,
-    createdAt: '2026-06-05T10:00:00',
-  },
-  {
-    id: 3,
-    disease: '뇌경색',
-    job: '장거리 운전기사',
-    baseScore: 81,
-    createdAt: '2026-05-28T10:00:00',
-  },
-];
 
 function normalizeRole(role) {
   if (!role) return 'USER';
@@ -78,9 +56,8 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
   const [error, setError] = useState('');
 
   const [historyPage, setHistoryPage] = useState(1);
-  const [history, setHistory] = useState(SAMPLE_HISTORY);
-
-  const historyLoading = false;
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const historyTotalPages = 1;
 
   const userId = user?.userId;
@@ -117,7 +94,20 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
       }
     };
 
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const items = await fetchMyHistory(userId);
+        setHistory(Array.isArray(items) ? items : []);
+      } catch {
+        // 이력 조회 실패는 페이지 전체 에러로 처리하지 않음
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
     fetchMemberInfo();
+    loadHistory();
   }, [userId, navigate]);
 
   const handleChange = (e) => {
@@ -192,10 +182,14 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
     }
   };
 
-  const handleDeleteAnalysis = (id) => {
+  const handleDeleteAnalysis = async (id) => {
     if (!window.confirm('분석 결과를 삭제하시겠습니까?')) return;
-
-    setHistory((prev) => prev.filter((h) => h.id !== id));
+    try {
+      await deleteMyAnalysis(id, userId);
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+    } catch (err) {
+      setError(err.message || '삭제에 실패했습니다.');
+    }
   };
 
 

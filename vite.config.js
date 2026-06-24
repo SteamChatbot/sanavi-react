@@ -6,8 +6,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      //새로고침시 우리가만든 api설계대로하려면 /api만남겨야한다. 
-      '/api': 'http://localhost:8080'
+      '/api': 'http://localhost:8080'  // backend-springboot (ai-api 중계 포함)
     }
   }
 })

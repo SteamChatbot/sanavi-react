@@ -99,8 +99,9 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
       try {
         const items = await fetchMyHistory(userId);
         setHistory(Array.isArray(items) ? items : []);
-      } catch {
-        // 이력 조회 실패는 페이지 전체 에러로 처리하지 않음
+      } catch (err) {
+        console.error('[이력조회 실패]', err);
+        setError(err.message || '이력 조회에 실패했습니다.');
       } finally {
         setHistoryLoading(false);
       }

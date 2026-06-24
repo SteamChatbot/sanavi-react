@@ -30,11 +30,6 @@ export default function MatchPage({ user }) {
     <div className="match-page">
       <Navbar user={user} />
 
-      {/* 미구현 배너 */}
-      <div className="match-wip-banner">
-        ⚠ 미구현 서비스 — 디자인 선행 화면입니다. match 테이블 구상 중이며, 개발 착수 전 기획 확정이 필요합니다.
-      </div>
-
       <div className="match-layout">
         {/* 사이드바 */}
         <aside className="match-sidebar">

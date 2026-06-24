@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: '/', label: '홈' },
   { to: '/agent', label: '에이전트' },
   { to: '/board', label: '게시판' },
+  { to: '/matchboard', label: '의뢰글' },
   { to: '/subscribe', label: '구독' },
   { to: '/match', label: '매칭' },
 ];

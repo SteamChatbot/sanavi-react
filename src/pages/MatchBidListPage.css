@@ -21,13 +21,13 @@
 
 .mbl-bid-table { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); overflow: hidden; }
 .mbl-bid-th {
-  display: grid; grid-template-columns: 130px 1fr 100px 60px 60px 70px;
+  display: grid; grid-template-columns: 130px 1fr 100px 60px 80px;
   padding: 9px 14px; background: var(--color-gray-50);
   border-bottom: 1px solid var(--color-gray-200);
   font-size: 10px; font-weight: 700; color: var(--color-gray-400); text-transform: uppercase; letter-spacing: .04em;
 }
 .mbl-bid-row {
-  display: grid; grid-template-columns: 130px 1fr 100px 60px 60px 70px;
+  display: grid; grid-template-columns: 130px 1fr 100px 60px 80px;
   padding: 12px 14px; border-bottom: 1px solid var(--color-gray-50);
   align-items: center; transition: background .1s;
 }
@@ -56,3 +56,36 @@
 .mbl-notice-card strong { display: block; font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 8px; }
 .mbl-notice-card { background: var(--color-warning-light); border-color: var(--color-warning-border); }
 .mbl-notice-card p  { font-size: 12px; color: #92400e; line-height: 1.6; margin-bottom: 4px; }
+
+/* 공통 */
+.mbl-loading { padding: 60px; text-align: center; color: var(--color-gray-400); font-size: 14px; }
+.mbl-back { background: none; border: none; font-size: 13px; color: var(--color-gray-500); cursor: pointer; padding: 0; margin-bottom: 20px; }
+.mbl-back:hover { color: var(--color-primary); }
+
+/* 변호사 뷰 — 상세 카드 */
+.mbl-detail-card { padding: 24px 28px; }
+.mbl-type { font-size: 12px; color: var(--color-gray-500); font-weight: 600; }
+
+/* 첨부파일 */
+.mbl-bid-form-inline { background: var(--color-gray-50); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+.mbl-bid-form-row { display: flex; gap: 12px; align-items: flex-start; }
+.mbl-bid-empty { padding: 20px; text-align: center; color: var(--color-gray-400); font-size: 13px; }
+.mbl-bid-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.mbl-files { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-gray-100); }
+.mbl-files__label { font-size: 11px; font-weight: 700; color: var(--color-gray-400); text-transform: uppercase; margin-bottom: 8px; }
+.mbl-file-item { font-size: 13px; color: var(--color-gray-700); display: flex; align-items: center; gap: 6px; }
+.mbl-file-size { font-size: 11px; color: var(--color-gray-400); }
+.mbl-file-link { text-decoration: none; color: var(--color-primary); padding: 4px 0; background: none; border: none; cursor: pointer; font-size: 13px; text-align: left; }
+.mbl-file-link:hover { text-decoration: underline; }
+
+/* 변호사 입찰 폼 */
+.mbl-closed-msg { font-size: 13px; color: var(--color-gray-400); text-align: center; padding: 12px 0; }
+.mbl-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.mbl-label { font-size: 12px; font-weight: 600; color: var(--color-gray-700); }
+.mbl-input { height: 36px; border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: 0 10px; font-size: 13px; font-family: var(--font-sans); outline: none; transition: border-color .15s; }
+.mbl-input:focus { border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+.mbl-input--error { border-color: var(--color-danger); }
+.mbl-textarea { border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: var(--font-sans); outline: none; resize: vertical; transition: border-color .15s; width: 100%; }
+.mbl-textarea:focus { border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+.mbl-error { font-size: 11px; color: var(--color-danger); }

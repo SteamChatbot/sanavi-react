@@ -1,33 +1,9 @@
-//분석 detail html
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import Badge from '../components/Badge';
 import Button from '../components/Button';
+import { pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
 import './AnalysisDetailPage.css';
-
-//샘플데이터
-// const SAMPLE = {
-//   id: 1, disease: '요추 추간판 탈출증', job: '건설현장 용접공',
-//   inspector: '건설현장에서 10년간 용접 작업 중 허리 부상을 입었습니다.',
-//   score: 72, createdAt: '2026.06.08',
-//   checklist: [
-//     { id:1, title:'진단서',        method:'병원에서 초진 기록과 현재 진단서를 함께 발급받으세요.', reason:'질병과 사고 시점의 연결성을 보여주는 핵심 자료입니다.', checked:true },
-//     { id:2, title:'근무기록',      method:'출퇴근 기록, 작업일지, 배치표를 확보하세요.', reason:'업무 수행 중 발생했다는 점을 설명하는 근거가 됩니다.', checked:true },
-//     { id:3, title:'목격자 진술',   method:'동료나 현장 책임자의 진술을 정리하세요.', reason:'사고 상황을 보강하는 자료로 활용됩니다.', checked:false },
-//     { id:4, title:'작업환경 자료', method:'현장 사진, CCTV, 작업환경 측정자료를 확인하세요.', reason:'업무 환경과 질병의 관련성을 설명할 수 있습니다.', checked:false },
-//   ],
-//   warnings: [
-//     '업무 외 시간 발생 사고는 별도 입증 자료 필수',
-//     '지병이 있을 경우 업무 기여도를 강조해야 합니다',
-//   ],
-//   metacontent: ['서울행정법원 2024구합12345', '대법원 2023두98765'],
-//   chatHistory: [
-//     { id:1, senderType:'AI',   message:'안녕하세요. 산재 분석 결과를 안내해 드립니다.' },
-//     { id:2, senderType:'USER', message:'추가로 어떤 서류를 준비하면 좋을까요?' },
-//     { id:3, senderType:'AI',   message:'목격자 진술과 작업환경 자료를 우선 확보하는 것을 권장드립니다. 특히 현장 사진은 시간이 지날수록 확보가 어려워집니다.' },
-//   ],
-// };
 
 function GaugeCircle({ score }) {
   const r = 40, circ = 2 * Math.PI * r;
@@ -46,25 +22,103 @@ function GaugeCircle({ score }) {
   );
 }
 
+function formatDate(isoString) {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  } catch { return ''; }
+}
+
 export default function AnalysisDetailPage({ user }) {
   const { id } = useParams();
-  const [checklist, setChecklist] = useState(SAMPLE.checklist);
-  const [chatMsgs, setChatMsgs] = useState(SAMPLE.chatHistory);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [data, setData] = useState(null);
+  const [checklist, setChecklist] = useState([]);
+  const [chatMsgs, setChatMsgs] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const result = await pollAnalysis(id);
+        if (result.status !== 'COMPLETED' || !result.data) {
+          setError('분석 결과를 불러올 수 없습니다.');
+          return;
+        }
+        const d = result.data;
+        setData(d);
+        setChecklist((d.checklist || []).map(c => ({ ...c, checked: false })));
+        if (d.chat_content) {
+          setChatMsgs([{ id: 1, senderType: 'AI', message: d.chat_content }]);
+        }
+      } catch (e) {
+        setError(e.message || '결과를 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
 
   const toggleCheck = (cid) =>
     setChecklist(p => p.map(c => c.id === cid ? { ...c, checked: !c.checked } : c));
 
-  const sendChat = () => {
-    if (!chatInput.trim()) return;
-    const msg = chatInput.trim();
-    setChatMsgs(p => [...p, { id: Date.now(), senderType: 'USER', message: msg }]);
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const question = chatInput.trim();
     setChatInput('');
-    setTimeout(() => {
-      setChatMsgs(p => [...p, { id: Date.now() + 1, senderType: 'AI', message: '네, 말씀하신 내용을 바탕으로 추가 조언을 드릴게요. 구체적인 서류 준비 방법이나 절차에 대해 더 알려드릴까요?' }]);
-    }, 600);
+    setChatMsgs(p => [...p, { id: Date.now(), senderType: 'USER', message: question }]);
+    setChatLoading(true);
+    try {
+      const history = chatMsgs.map(m => ({
+        role: m.senderType === 'USER' ? 'user' : 'ai',
+        content: m.message,
+      }));
+      const res = await sendAdvisorChat({
+        context: {
+          chat_content: data.chat_content,
+          checklist: data.checklist,
+          warning: data.warning,
+        },
+        history,
+        question,
+      });
+      setChatMsgs(p => [...p, { id: Date.now() + 1, senderType: 'AI', message: res.answer }]);
+    } catch {
+      setChatMsgs(p => [...p, { id: Date.now() + 1, senderType: 'AI', message: '답변을 가져오지 못했습니다. 다시 시도해 주세요.' }]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="ad-page">
+        <Navbar user={user} />
+        <div className="ad-container">
+          <div className="mp-loading">분석 결과를 불러오는 중입니다...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ad-page">
+        <Navbar user={user} />
+        <div className="ad-container">
+          <div className="mp-empty">{error}</div>
+          <Link to="/mypage"><Button variant="outline" size="sm">마이페이지로 돌아가기</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  const score = Math.round(data.base_score);
   const checked = checklist.filter(c => c.checked).length;
 
   return (
@@ -78,28 +132,25 @@ export default function AnalysisDetailPage({ user }) {
         </div>
 
         <div className="ad-layout">
-          {/* 좌측 — 결과 재열람 */}
           <section className="ad-left">
-            {/* 요약 카드 */}
             <div className="ad-summary-card">
               <div className="ad-summary-left">
-                <GaugeCircle score={SAMPLE.score} />
+                <GaugeCircle score={score} />
                 <div className="ad-summary-info">
                   <div className="ad-summary-title">산재 승인 예상 비율</div>
                   <div className="ad-summary-sub">직업·질병 통계 기반 참고 지표</div>
                   <div className="ad-progress">
-                    <div className="ad-progress-fill" style={{ width: `${SAMPLE.score}%` }} />
+                    <div className="ad-progress-fill" style={{ width: `${score}%` }} />
                   </div>
                 </div>
               </div>
               <div className="ad-summary-right">
-                <div className="ad-summary-field"><span>질병명</span><strong>{SAMPLE.disease}</strong></div>
-                <div className="ad-summary-field"><span>직업</span><strong>{SAMPLE.job}</strong></div>
-                <div className="ad-summary-field"><span>작성일</span><strong>{SAMPLE.createdAt}</strong></div>
+                <div className="ad-summary-field"><span>질병명</span><strong>{data.disease || '-'}</strong></div>
+                <div className="ad-summary-field"><span>직업</span><strong>{data.job || '-'}</strong></div>
+                <div className="ad-summary-field"><span>작성일</span><strong>{formatDate(data.createdAt)}</strong></div>
               </div>
             </div>
 
-            {/* 체크리스트 */}
             <div className="ad-section">
               <div className="ad-section-header">
                 <span className="ad-section-title">📋 증거 준비 체크리스트</span>
@@ -112,7 +163,7 @@ export default function AnalysisDetailPage({ user }) {
                       onClick={() => toggleCheck(c.id)}>
                       {c.checked ? '✓' : ''}
                     </button>
-                    <span className="ad-cl-title">{c.title}</span>
+                    <span className="ad-cl-title">{c.label}</span>
                   </div>
                   <div className="ad-cl-detail">
                     <p><strong>[방법]</strong> {c.method}</p>
@@ -122,23 +173,20 @@ export default function AnalysisDetailPage({ user }) {
               ))}
             </div>
 
-            {/* 주의사항 */}
             <div className="ad-section">
               <div className="ad-section-title">⚠️ 판례 기반 주의사항</div>
-              {SAMPLE.warnings.map((w, i) => (
+              {(data.warning || []).map((w, i) => (
                 <div key={i} className="ad-warning-item">{w}</div>
               ))}
             </div>
 
-            {/* 참고 판례 */}
             <div className="ad-section">
               <div className="ad-section-title">📚 참고 판례</div>
-              {SAMPLE.metacontent.map((m, i) => (
+              {(data.meta_content || []).map((m, i) => (
                 <div key={i} className="ad-meta-item">{m}</div>
               ))}
             </div>
 
-            {/* PDF 다운로드 */}
             <div className="ad-pdf-area">
               {user?.subscribe
                 ? <Button variant="primary" size="md" fullWidth>📄 PDF 리포트 다운로드</Button>
@@ -152,7 +200,6 @@ export default function AnalysisDetailPage({ user }) {
             </div>
           </section>
 
-          {/* 우측 — AI 추가 질의 */}
           <section className="ad-right ad-chat-panel">
             <div className="ad-chat-header">
               <span className="ad-chat-dot" />
@@ -164,6 +211,9 @@ export default function AnalysisDetailPage({ user }) {
                   {m.message}
                 </div>
               ))}
+              {chatLoading && (
+                <div className="ad-bubble ad-bubble--bot">답변을 생성 중입니다...</div>
+              )}
             </div>
             {!user?.subscribe && (
               <div className="ad-subscribe-notice">
@@ -175,8 +225,9 @@ export default function AnalysisDetailPage({ user }) {
               <input className="ad-chat-input" type="text"
                 placeholder="추가 질문하기..."
                 value={chatInput} onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendChat()} />
-              <button className="ad-chat-send" onClick={sendChat} aria-label="전송">
+                onKeyDown={e => e.key === 'Enter' && sendChat()}
+                disabled={chatLoading} />
+              <button className="ad-chat-send" onClick={sendChat} aria-label="전송" disabled={chatLoading}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" />

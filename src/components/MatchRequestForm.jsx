@@ -110,8 +110,11 @@ export default function MatchRequestForm({
       nextErrors.content = '사건 경위를 20자 이상 입력해 주세요.';
     }
 
-    if (!form.price || Number.isNaN(Number(form.price)) || Number(form.price) <= 0) {
+    const priceNum = Number(form.price);
+    if (!form.price || Number.isNaN(priceNum) || priceNum <= 0) {
       nextErrors.price = '희망 보수를 올바르게 입력해 주세요.';
+    } else if (priceNum > 1_000_000_000_000) {
+      nextErrors.price = '희망 보수는 1조 원을 초과할 수 없습니다.';
     }
 
     if (requireFile && files.length === 0) {
@@ -204,6 +207,8 @@ export default function MatchRequestForm({
           label="희망 보수 (원)"
           type="number"
           placeholder="1500000"
+          min={1}
+          max={1000000000000}
           value={form.price}
           onChange={handleChange}
           state={errors.price ? 'error' : 'default'}

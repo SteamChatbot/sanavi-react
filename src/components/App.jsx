@@ -13,6 +13,7 @@ import BoardWritePage     from '../pages/BoardWritePage';
 import SubscribePage      from '../pages/SubscribePage';
 import { LawyerVerifyPage } from '../pages/LawyerVerifyPage';
 import MatchPage            from '../pages/MatchPage';
+import MatchBoardPage       from '../pages/MatchBoardPage';
 import MatchWritePage       from '../pages/MatchWritePage';
 import MatchBidListPage     from '../pages/MatchBidListPage';
 import MyPage               from '../pages/MyPage';
@@ -62,9 +63,10 @@ export default function App() {
         <Route path="/board/write"    element={<BoardWritePage user={user} />} />
         <Route path="/subscribe"      element={<SubscribePage    user={user} />} />
         <Route path="/lawyer/verify"      element={<LawyerVerifyPage   user={user} />} />
-        <Route path="/match"              element={<MatchPage        user={user} />} />
-        <Route path="/match/write"        element={<MatchWritePage   user={user} />} />
-        <Route path="/match/:id/bids"     element={<MatchBidListPage user={user} />} />
+        <Route path="/match"                    element={<MatchPage        user={user} />} />
+        <Route path="/matchboard"               element={<MatchBoardPage   user={user} />} />
+        <Route path="/matchboard/write"         element={<MatchWritePage   user={user} />} />
+        <Route path="/matchboard/:id"           element={<MatchBidListPage user={user} />} />
         <Route path="/mypage"             element={<MyPage           user={user} onLogout={handleLogout}  onUserUpdate={handleUpdateUser}/>} />
         <Route path="/analysis/:id"       element={<AnalysisDetailPage user={user} />} />
         <Route path="*"                   element={<Navigate to="/" replace />} />

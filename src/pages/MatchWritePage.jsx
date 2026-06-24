@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Navbar from '../components/Navbar';
 import MatchRequestForm from '../components/MatchRequestForm';
+import { createMatch } from '../api/matchApi';
 
 export default function MatchWritePage({ user, onLogout }) {
   const navigate = useNavigate();
@@ -14,24 +15,18 @@ export default function MatchWritePage({ user, onLogout }) {
       return;
     }
 
-    const payload = {
-      userId: user.userId,
-      title: form.title,
-      clientName: form.clientName,
-      content: form.content,
-      price: form.price,
-      matchType: 'AUCTION',
-    };
+    const formData = new FormData();
+    formData.append('userId',    user.userId);
+    formData.append('title',     form.title);
+    formData.append('clientName', form.clientName);
+    formData.append('content',   form.content);
+    formData.append('price',     form.price);
+    formData.append('matchType', 'AUCTION');
+    if (files?.[0]) formData.append('pdf', files[0]);
 
-    console.log('requestboard payload:', payload);
-    console.log('requestboard files:', files);
-
-    // await requestBoardApi.createAuctionRequest(payload, files);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
+    await createMatch(formData);
     alert('의뢰글이 등록되었습니다.');
-    navigate('/match');
+    navigate('/matchboard');
   };
 
   return (

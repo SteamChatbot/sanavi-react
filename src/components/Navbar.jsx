@@ -12,6 +12,8 @@ const NAV_LINKS = [
   { to: '/board', label: '게시판' },
   { to: '/subscribe', label: '구독' },
   { to: '/match', label: '매칭' },
+  { to: '/lawyers', label: '변호사 찾기' },
+  { to: '/my-lawyer-requests', label: '내 의뢰' },
 ];
 
 export default function Navbar({ user = null, onLogout }) {
@@ -32,7 +34,14 @@ export default function Navbar({ user = null, onLogout }) {
 
   const displayName = user?.name || user?.nickname || user?.userId || '사용자';
   const role = user?.role || 'USER';
+  const isLawyer = String(role || '').toUpperCase().includes('LAWYER');
+  const isActiveLink = (to) => {
+    if (to === '/') {
+      return pathname === '/';
+    }
 
+    return pathname === to || pathname.startsWith(`${to}/`);
+  };
   return (
     <header className="navbar">
       <div className="navbar__inner">
@@ -47,7 +56,7 @@ export default function Navbar({ user = null, onLogout }) {
               to={to}
               className={[
                 'navbar__link',
-                pathname === to ? 'navbar__link--active' : '',
+                isActiveLink(to) ? 'navbar__link--active' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -67,6 +76,21 @@ export default function Navbar({ user = null, onLogout }) {
                 .join(' ')}
             >
               관리
+            </Link>
+          )}
+          {isLawyer && (
+            <Link
+              to="/lawyer/requests"
+              className={[
+                'navbar__link',
+                pathname === '/lawyer/requests' || pathname.startsWith('/lawyer/requests/')
+                  ? 'navbar__link--active'
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              받은 의뢰
             </Link>
           )}
         </nav>

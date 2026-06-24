@@ -17,6 +17,12 @@ import MatchWritePage       from '../pages/MatchWritePage';
 import MatchBidListPage     from '../pages/MatchBidListPage';
 import MyPage               from '../pages/MyPage';
 import AnalysisDetailPage   from '../pages/AnalysisDetailPage';
+import LawyerListPage       from '../pages/LawyerListPage';
+import LawyerDetailPage     from '../pages/LawyerDetailPage';
+import LawyerRequestWritePage from '../pages/LawyerRequestWritePage';
+import MyLawyerRequestsPage from '../pages/MyLawyerRequestsPage';
+import DirectRequestDetailPage from '../pages/DirectRequestDetailPage';
+import LawyerReceivedRequestsPage from '../pages/LawyerReceivedRequestsPage';
 
 function getSavedUser() {
   try {
@@ -53,8 +59,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/"               element={<LandingPage     user={user} />} />
-        <Route path="/login"          element={<LoginPage        onLogin={setUser} />} />
-        <Route path="/signup"         element={<SignupPage       onLogin={setUser} />} />
+        <Route path="/login"          element={<LoginPage        onLogin={handleLogin} />} />
+        <Route path="/signup"         element={<SignupPage       onLogin={handleLogin} />} />
         <Route path="/agent"          element={<AgentPage        user={user} onLogout={handleLogout} />} />
         <Route path="/board"          element={<BoardListPage    user={user} />} />
         <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
@@ -67,6 +73,12 @@ export default function App() {
         <Route path="/match/:id/bids"     element={<MatchBidListPage user={user} />} />
         <Route path="/mypage"             element={<MyPage           user={user} onLogout={handleLogout}  onUserUpdate={handleUpdateUser}/>} />
         <Route path="/analysis/:id"       element={<AnalysisDetailPage user={user} />} />
+        <Route path="/lawyers"            element={<LawyerListPage user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyers/:lawyerId"  element={<LawyerDetailPage user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyers/:lawyerId/request"  element={<LawyerRequestWritePage user={user} onLogout={handleLogout} />}/>
+        <Route path="/my-lawyer-requests" element={<MyLawyerRequestsPage user={user} onLogout={handleLogout} />}/>
+        <Route path="/requestlist/requests/:matchId"  element={<DirectRequestDetailPage user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyer/requests"    element={<LawyerReceivedRequestsPage user={user} onLogout={handleLogout} />}/>
         <Route path="*"                   element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

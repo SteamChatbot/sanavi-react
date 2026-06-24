@@ -59,7 +59,7 @@ export default function MatchBoardPage({ user }) {
                 : '의뢰글을 확인하거나 새 의뢰를 등록하세요'}
             </p>
           </div>
-          {!isLawyer && user && (
+          {user && (
             <Link to="/matchboard/write">
               <Button variant="primary" size="sm">의뢰 등록</Button>
             </Link>

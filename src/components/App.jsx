@@ -25,6 +25,8 @@ import MyLawyerRequestsPage from '../pages/MyLawyerRequestsPage';
 import DirectRequestDetailPage from '../pages/DirectRequestDetailPage';
 import LawyerReceivedRequestsPage from '../pages/LawyerReceivedRequestsPage';
 
+// 새로고침 후에도 로그인 상태 유지 — localStorage에서 user 복원
+// JSON 파싱 실패(손상된 데이터) 시 자동 초기화
 function getSavedUser() {
   try {
     const saved = localStorage.getItem('sanaviUser');
@@ -36,21 +38,22 @@ function getSavedUser() {
 }
 
 export default function App() {
+  // user.role: 'role_user' | 'role_lawyer' | 'role_admin'
   const [user, setUser] = useState(getSavedUser);
-  // 개발용 빠른 토글
-  // setUser({ name:'김', role:'USER' })  → 로그인
-  // setUser({ name:'관', role:'ADMIN' }) → 관리자
 
+  // 로그인 성공 시 백엔드 응답(user 객체)을 state + localStorage에 저장
   const handleLogin = (loginUser) => {
     setUser(loginUser);
     localStorage.setItem('sanaviUser', JSON.stringify(loginUser));
   };
 
+  // 로그아웃 — state 초기화 + localStorage 제거
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('sanaviUser');
   };
 
+  // 구독 변경·프로필 수정 등 user 정보가 바뀔 때 동기화
   const handleUpdateUser = (nextUser) => {
     setUser(nextUser);
     localStorage.setItem('sanaviUser', JSON.stringify(nextUser));
@@ -59,29 +62,41 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* 공통 */}
         <Route path="/"               element={<LandingPage     user={user} />} />
         <Route path="/login"          element={<LoginPage        onLogin={handleLogin} />} />
         <Route path="/signup"         element={<SignupPage       onLogin={handleLogin} />} />
         <Route path="/agent"          element={<AgentPage        user={user} onLogout={handleLogout} />} />
+
+        {/* 커뮤니티 게시판 */}
         <Route path="/board"          element={<BoardListPage    user={user} />} />
         <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
-        <Route path="/board/:id/edit" element={<BoardWritePage user={user} />}/>
-        <Route path="/board/write"    element={<BoardWritePage user={user} />} />
-        <Route path="/subscribe"      element={<SubscribePage    user={user} />} />
-        <Route path="/lawyer/verify"      element={<LawyerVerifyPage   user={user} />} />
-        <Route path="/match"                    element={<MatchPage        user={user} />} />
-        <Route path="/matchboard"               element={<MatchBoardPage   user={user} />} />
-        <Route path="/matchboard/write"         element={<MatchWritePage   user={user} />} />
-        <Route path="/matchboard/:id"           element={<MatchBidListPage user={user} />} />
-        <Route path="/mypage"             element={<MyPage           user={user} onLogout={handleLogout}  onUserUpdate={handleUpdateUser}/>} />
-        <Route path="/analysis/:id"       element={<AnalysisDetailPage user={user} />} />
-        <Route path="/lawyers"            element={<LawyerListPage user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyers/:lawyerId"  element={<LawyerDetailPage user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyers/:lawyerId/request"  element={<LawyerRequestWritePage user={user} onLogout={handleLogout} />}/>
-        <Route path="/my-lawyer-requests" element={<MyLawyerRequestsPage user={user} onLogout={handleLogout} />}/>
-        <Route path="/requestlist/requests/:matchId"  element={<DirectRequestDetailPage user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyer/requests"    element={<LawyerReceivedRequestsPage user={user} onLogout={handleLogout} />}/>
-        <Route path="*"                   element={<Navigate to="/" replace />} />
+        <Route path="/board/:id/edit" element={<BoardWritePage   user={user} />}/>
+        <Route path="/board/write"    element={<BoardWritePage   user={user} />} />
+
+        {/* 구독·인증 */}
+        <Route path="/subscribe"      element={<SubscribePage    user={user} onUserUpdate={handleUpdateUser} />} />
+        <Route path="/lawyer/verify"  element={<LawyerVerifyPage user={user} />} />
+
+        {/* 변호사 매칭 — role에 따라 컴포넌트 내부에서 UI 분기 */}
+        <Route path="/match"                   element={<MatchPage        user={user} />} />
+        <Route path="/matchboard"              element={<MatchBoardPage   user={user} />} />
+        <Route path="/matchboard/write"        element={<MatchWritePage   user={user} />} />
+        <Route path="/matchboard/:id"          element={<MatchBidListPage user={user} />} />
+
+        {/* 변호사 직접 연결 */}
+        <Route path="/lawyers"                            element={<LawyerListPage          user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyers/:lawyerId"                  element={<LawyerDetailPage        user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyers/:lawyerId/request"          element={<LawyerRequestWritePage  user={user} onLogout={handleLogout} />}/>
+        <Route path="/my-lawyer-requests"                 element={<MyLawyerRequestsPage    user={user} onLogout={handleLogout} />}/>
+        <Route path="/requestlist/requests/:matchId"      element={<DirectRequestDetailPage user={user} onLogout={handleLogout} />}/>
+        <Route path="/lawyer/requests"                    element={<LawyerReceivedRequestsPage user={user} onLogout={handleLogout} />}/>
+
+        {/* 마이페이지·분석 결과 */}
+        <Route path="/mypage"       element={<MyPage             user={user} onLogout={handleLogout} onUserUpdate={handleUpdateUser}/>} />
+        <Route path="/analysis/:id" element={<AnalysisDetailPage user={user} />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

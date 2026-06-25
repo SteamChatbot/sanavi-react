@@ -4,6 +4,8 @@
 .subscribe-header h1 { font-size: 24px; font-weight: 800; color: var(--color-navy); margin-bottom: 8px; }
 .subscribe-header p  { font-size: 14px; color: var(--color-gray-400); }
 
+.subscribe-error { color: var(--color-danger, #e53e3e); font-size: 14px; text-align: center; margin-bottom: 16px; }
+
 .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .plan-card {
   background: var(--color-white); border: 1.5px solid var(--color-gray-200);

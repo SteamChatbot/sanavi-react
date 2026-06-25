@@ -1,13 +1,18 @@
+// 변호사 직접 연결 API — 의뢰인이 변호사를 직접 선택해 의뢰 요청을 보내는 흐름
+// 상태 전이: PENDING → ACCEPTED(변호사 수락) | REJECTED(변호사 거절) | CANCELLED(의뢰인 취소)
 import { request } from './http';
 
+// 변호사 목록 조회 — LawyerListPage에서 사용
 export function getLawyerList() {
   return request('/api/requestlist/lawyers');
 }
 
+// 변호사 상세 조회 — LawyerDetailPage에서 사용
 export function getLawyerDetail(lawyerId) {
   return request(`/api/requestlist/lawyers/${lawyerId}`);
 }
 
+// 직접 의뢰 생성 — multipart/form-data, 첨부파일 없을 경우 files=[] 기본값
 export function createDirectRequest(payload, files = []) {
   const formData = new FormData();
 
@@ -27,24 +32,29 @@ export function createDirectRequest(payload, files = []) {
   });
 }
 
+// 의뢰인이 보낸 의뢰 목록 — MyLawyerRequestsPage에서 사용
 export function getSentRequests(userId) {
   return request(`/api/requestlist/requests/sent?userId=${userId}`);
 }
 
+// 변호사가 받은 의뢰 목록 — LawyerReceivedRequestsPage에서 사용
 export function getReceivedRequests(lawyerId) {
   return request(`/api/requestlist/requests/received?lawyerId=${lawyerId}`);
 }
 
+// 의뢰 단건 상세 조회 — DirectRequestDetailPage에서 사용
 export function getDirectRequestDetail(matchId) {
   return request(`/api/requestlist/requests/${matchId}`);
 }
 
+// 변호사가 의뢰 수락 → 상태 ACCEPTED
 export function acceptDirectRequest(matchId, lawyerId) {
   return request(`/api/requestlist/requests/${matchId}/accept?lawyerId=${lawyerId}`, {
     method: 'PATCH',
   });
 }
 
+// 변호사가 의뢰 거절 → 상태 REJECTED, payload에 거절 사유 포함
 export function rejectDirectRequest(matchId, payload) {
   return request(`/api/requestlist/requests/${matchId}/reject`, {
     method: 'PATCH',
@@ -55,6 +65,7 @@ export function rejectDirectRequest(matchId, payload) {
   });
 }
 
+// 의뢰인이 의뢰 취소 → 상태 CANCELLED
 export function cancelDirectRequest(matchId, userId) {
   return request(`/api/requestlist/requests/${matchId}/cancel?userId=${userId}`, {
     method: 'PATCH',

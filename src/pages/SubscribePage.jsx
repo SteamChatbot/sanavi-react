@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
+import { activateSubscribe, cancelSubscribe } from '../api/subscribeApi';
 import './SubscribePage.css';
 
 const PLANS = [
@@ -13,7 +14,7 @@ const PLANS = [
       { text: '대화 내역 저장', ok: false },
       { text: 'PDF 리포트 다운로드', ok: false },
     ],
-    cta: '현재 플랜', ctaVariant: 'outline',
+    cta: 'Basic으로 변경', ctaVariant: 'outline',
   },
   {
     id: 'pro', name: 'Pro', price: '₩9,900', period: '/ 월', badge: '인기', badgeType: 'pro', featured: true,
@@ -27,8 +28,46 @@ const PLANS = [
   },
 ];
 
-export default function SubscribePage({ user }) {
-  const [current, setCurrent] = useState('basic');
+// subscribe: 1 → 'pro', 0 또는 undefined → 'basic'
+function resolveCurrentPlan(user) {
+  if (!user) return 'basic';
+  return user.subscribe === 1 ? 'pro' : 'basic';
+}
+
+export default function SubscribePage({ user, onUserUpdate }) {
+  const [current, setCurrent] = useState(() => resolveCurrentPlan(user));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handlePlanChange = async (planId) => {
+    if (!user) {
+      setError('로그인이 필요합니다.');
+      return;
+    }
+    if (planId === current) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      if (planId === 'pro') {
+        // TODO: PG 연동 후 결제창 먼저 띄우고 완료 후 호출
+        await activateSubscribe(user.userId);
+      } else {
+        await cancelSubscribe(user.userId);
+      }
+
+      setCurrent(planId);
+
+      // 상위 App에 user 상태 동기화 (localStorage 포함)
+      if (onUserUpdate) {
+        onUserUpdate({ ...user, subscribe: planId === 'pro' ? 1 : 0 });
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="subscribe-page">
@@ -38,6 +77,7 @@ export default function SubscribePage({ user }) {
           <h1>당신에게 맞는 플랜을 선택하세요</h1>
           <p>구독 여부에 따라 AI 사용 횟수 및 기능이 달라집니다</p>
         </div>
+        {error && <p className="subscribe-error">{error}</p>}
         <div className="plan-grid">
           {PLANS.map(plan => (
             <div key={plan.id} className={`plan-card${plan.featured ? ' plan-card--featured' : ''}`}>
@@ -59,8 +99,8 @@ export default function SubscribePage({ user }) {
                 variant={plan.ctaVariant}
                 size="md"
                 fullWidth
-                onClick={() => setCurrent(plan.id)}
-                disabled={current === plan.id}
+                onClick={() => handlePlanChange(plan.id)}
+                disabled={current === plan.id || loading}
               >
                 {current === plan.id ? '현재 플랜' : plan.cta}
               </Button>

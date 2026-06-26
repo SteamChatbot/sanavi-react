@@ -53,16 +53,7 @@ export function signupMember(payload) {
   return request('/api/members/signup', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({
-      userId: payload.userId,
-      password: payload.password,
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email,
-      birth: payload.birth,
-      job: payload.job,
-      gender: payload.gender,
-    }),
+    body: JSON.stringify(payload),
   });
 }
 

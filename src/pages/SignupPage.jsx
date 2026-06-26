@@ -50,6 +50,15 @@ export default function SignupPage() {
 
   const [errors, setErrors] = useState({});
 
+  const [role, setRole] = useState('role_user');
+
+  const [lawyerInfo, setLawyerInfo] = useState({
+    firmName: '',
+    region: '전체',
+    experienceYears: 0,
+    specialty: '산재',
+  });
+
   const handleChange = (e) => {
     const { id, value } = e.target;
 
@@ -238,6 +247,28 @@ export default function SignupPage() {
       nextErrors.gender = '성별을 선택해 주세요.';
     }
 
+    if (role === 'role_lawyer') {
+      if (!lawyerInfo.firmName.trim()) {
+        nextErrors.firmName = '법률사무소명을 입력해 주세요.';
+      }
+
+      if (!lawyerInfo.region.trim()) {
+        nextErrors.region = '활동 지역을 입력해 주세요.';
+      }
+
+      if (
+        lawyerInfo.experienceYears === '' ||
+        Number.isNaN(Number(lawyerInfo.experienceYears)) ||
+        Number(lawyerInfo.experienceYears) < 0
+      ) {
+        nextErrors.experienceYears = '경력 연수를 올바르게 입력해 주세요.';
+      }
+
+      if (!lawyerInfo.specialty.trim()) {
+        nextErrors.specialty = '전문 분야를 입력해 주세요.';
+      }
+    }
+
     return nextErrors;
   };
 
@@ -296,6 +327,24 @@ export default function SignupPage() {
         birth: form.birth,
         job: form.job.trim(),
         gender: form.gender,
+
+        role,
+
+        firmName: role === 'role_lawyer'
+          ? lawyerInfo.firmName.trim()
+          : null,
+
+        region: role === 'role_lawyer'
+          ? lawyerInfo.region.trim()
+          : null,
+
+        experienceYears: role === 'role_lawyer'
+          ? Number(lawyerInfo.experienceYears || 0)
+          : null,
+
+        specialty: role === 'role_lawyer'
+          ? lawyerInfo.specialty.trim()
+          : null,
       });
 
       setStep(2);
@@ -307,6 +356,21 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLawyerInfoChange = (e) => {
+    const { id, value } = e.target;
+
+    setLawyerInfo((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [id]: '',
+      submit: '',
+    }));
   };
 
   return (
@@ -483,6 +547,115 @@ export default function SignupPage() {
                 state={errors.job ? 'error' : 'default'}
                 errorMsg={errors.job}
               />
+              
+              <div className="signup-role-section">
+                <label className="auth-select-label">
+                  가입 유형
+                </label>
+
+                <div className="signup-role-box">
+                  <label
+                    className={`signup-role-option ${role === 'role_user' ? 'signup-role-option--active' : ''
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="role_user"
+                      checked={role === 'role_user'}
+                      onChange={() => {
+                        setRole('role_user');
+                        setErrors((prev) => ({
+                          ...prev,
+                          firmName: '',
+                          region: '',
+                          experienceYears: '',
+                          specialty: '',
+                          submit: '',
+                        }));
+                      }}
+                    />
+
+                    <div>
+                      <strong>일반 사용자</strong>
+                      <span>
+                        산재 분석, 게시판, 변호사 의뢰 기능을 이용합니다.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`signup-role-option ${role === 'role_lawyer' ? 'signup-role-option--active' : ''
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="role_lawyer"
+                      checked={role === 'role_lawyer'}
+                      onChange={() => setRole('role_lawyer')}
+                    />
+
+                    <div>
+                      <strong>변호사</strong>
+                      <span>
+                        사용자가 보낸 의뢰를 확인하고 수락 또는 거절할 수 있습니다.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {role === 'role_lawyer' && (
+                <div className="lawyer-signup-fields">
+                  <div className="lawyer-signup-guide">
+                    변호사 회원은 가입 후 변호사 목록에 노출됩니다.
+                  </div>
+
+                  <Input
+                    id="firmName"
+                    label="법률사무소명"
+                    placeholder="예: 산내비 법률사무소"
+                    value={lawyerInfo.firmName}
+                    onChange={handleLawyerInfoChange}
+                    state={errors.firmName ? 'error' : 'default'}
+                    errorMsg={errors.firmName}
+                  />
+
+                  <div className="auth-grid-2">
+                    <Input
+                      id="region"
+                      label="활동 지역"
+                      placeholder="예: 서울"
+                      value={lawyerInfo.region}
+                      onChange={handleLawyerInfoChange}
+                      state={errors.region ? 'error' : 'default'}
+                      errorMsg={errors.region}
+                    />
+
+                    <Input
+                      id="experienceYears"
+                      label="경력 연수"
+                      type="number"
+                      placeholder="예: 5"
+                      value={lawyerInfo.experienceYears}
+                      onChange={handleLawyerInfoChange}
+                      state={errors.experienceYears ? 'error' : 'default'}
+                      errorMsg={errors.experienceYears}
+                    />
+                  </div>
+
+                  <Input
+                    id="specialty"
+                    label="전문 분야"
+                    placeholder="예: 산업재해, 직업병, 요양급여"
+                    value={lawyerInfo.specialty}
+                    onChange={handleLawyerInfoChange}
+                    state={errors.specialty ? 'error' : 'default'}
+                    errorMsg={errors.specialty}
+                  />
+                </div>
+              )}
 
               <Button
                 type="button"

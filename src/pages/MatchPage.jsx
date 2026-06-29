@@ -2,28 +2,26 @@ import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
+import { SPECIALTY_LIST } from '../constants/specialties';
+import { SIDO_LIST } from '../constants/regions';
 import './MatchPage.css';
 
 const LAWYERS = [
-  { id:1, name:'김○○ 변호사', spec:'산재·노동법 전문', career:'경력 12년', rating:4.9, tags:['산재','직업병','노동법'],  color:'purple' },
-  { id:2, name:'이○○ 변호사', spec:'산재 전문',        career:'경력 8년',  rating:4.7, tags:['산재','건설업'],          color:'amber'  },
-  { id:3, name:'박○○ 변호사', spec:'노동·산재 전문',   career:'경력 15년', rating:5.0, tags:['산재','직업성질환'],      color:'teal'   },
+  { id:1, name:'김○○ 변호사', spec:'산재·노동법 전문', career:'경력 12년', rating:4.9, tags:['산업재해','직업병','노동법'],  color:'purple' },
+  { id:2, name:'이○○ 변호사', spec:'산재 전문',        career:'경력 8년',  rating:4.7, tags:['산업재해','건설업재해'],       color:'amber'  },
+  { id:3, name:'박○○ 변호사', spec:'노동·산재 전문',   career:'경력 15년', rating:5.0, tags:['산업재해','직업병'],           color:'teal'   },
 ];
 
-const FIELD_OPTIONS  = ['산재', '노동법', '민사'];
-const REGION_OPTIONS = ['전국', '서울', '경기', '부산'];
-
 export default function MatchPage({ user }) {
-  const [fields,  setFields]  = useState([]);
-  const [region,  setRegion]  = useState('전국');
-  const [minRate, setMinRate] = useState(0);
+  const [fields, setFields] = useState([]);
+  const [region, setRegion] = useState('전체');
 
   const toggleField = (f) => setFields(p => p.includes(f) ? p.filter(x => x !== f) : [...p, f]);
 
   const filtered = LAWYERS.filter(l => {
     const matchField  = fields.length === 0 || l.tags.some(t => fields.includes(t));
-    const matchRating = l.rating >= minRate;
-    return matchField && matchRating;
+    const matchRegion = region === '전체' || l.region === region;
+    return matchField && matchRegion;
   });
 
   return (
@@ -37,7 +35,7 @@ export default function MatchPage({ user }) {
 
           <div className="filter-group">
             <div className="filter-group__label">전문 분야</div>
-            {FIELD_OPTIONS.map(f => (
+            {SPECIALTY_LIST.map(f => (
               <label key={f} className="filter-check">
                 <input type="checkbox" checked={fields.includes(f)} onChange={() => toggleField(f)} />
                 {f}
@@ -48,21 +46,12 @@ export default function MatchPage({ user }) {
           <div className="filter-group">
             <div className="filter-group__label">지역</div>
             <select className="filter-select" value={region} onChange={e => setRegion(e.target.value)}>
-              {REGION_OPTIONS.map(r => <option key={r}>{r}</option>)}
+              <option value="전체">전체</option>
+              {SIDO_LIST.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
 
-          <div className="filter-group">
-            <div className="filter-group__label">최소 평점</div>
-            {[0, 3, 4, 4.5].map(v => (
-              <label key={v} className="filter-check">
-                <input type="radio" checked={minRate === v} onChange={() => setMinRate(v)} />
-                {v === 0 ? '전체' : `${v}점 이상`}
-              </label>
-            ))}
-          </div>
-
-          <button className="filter-reset" onClick={() => { setFields([]); setRegion('전국'); setMinRate(0); }}>
+          <button className="filter-reset" onClick={() => { setFields([]); setRegion('전체'); }}>
             필터 초기화
           </button>
         </aside>
@@ -76,10 +65,6 @@ export default function MatchPage({ user }) {
               <div className="lawyer-card__info">
                 <div className="lawyer-card__name">{l.name}</div>
                 <div className="lawyer-card__spec">{l.spec} | {l.career}</div>
-                <div className="lawyer-card__rating">
-                  <span className="lawyer-card__stars">{'★'.repeat(Math.floor(l.rating))}</span>
-                  <span className="lawyer-card__score">{l.rating}</span>
-                </div>
                 <div className="lawyer-card__tags">
                   {l.tags.map(t => <span key={t} className="lawyer-card__tag">{t}</span>)}
                 </div>

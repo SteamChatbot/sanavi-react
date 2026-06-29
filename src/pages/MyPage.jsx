@@ -14,23 +14,8 @@ import {
 } from '../api/memberApi';
 import { fetchMyHistory, deleteMyAnalysis } from '../api/analysisApi';
 
+import { parseRole } from '../constants/roles';
 import './MyPage.css';
-
-
-
-function normalizeRole(role) {
-  if (!role) return 'USER';
-
-  const normalized = String(role)
-    .toUpperCase()
-    .replace('ROLE_', '');
-
-  if (normalized === 'USER') return 'USER';
-  if (normalized === 'ADMIN') return 'ADMIN';
-  if (normalized === 'LAWYER') return 'LAWYER';
-
-  return normalized;
-}
 
 function toBooleanSubscribe(value) {
   return value === true || value === 1 || value === '1';
@@ -167,7 +152,7 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
         ...user,
         userId: updatedMember.userId,
         name: updatedMember.name,
-        role: normalizeRole(updatedMember.role),
+        role: parseRole(updatedMember.role),
         subscribe: toBooleanSubscribe(updatedMember.subscribe),
       };
 
@@ -195,7 +180,7 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
 
 
   const displayName = form.name || user?.name || user?.userId || '사용자';
-  const role = normalizeRole(member?.role || user?.role);
+  const role = parseRole(member?.role || user?.role);
   const subscribed = toBooleanSubscribe(member?.subscribe ?? user?.subscribe);
 
   if (pageLoading) {

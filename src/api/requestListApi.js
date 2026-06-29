@@ -13,10 +13,10 @@ export function getLawyerDetail(lawyerId) {
 }
 
 // 직접 의뢰 생성 — multipart/form-data, 첨부파일 없을 경우 files=[] 기본값
+// userId는 서버가 JWT로 설정
 export function createDirectRequest(payload, files = []) {
   const formData = new FormData();
 
-  formData.append('userId', payload.userId);
   formData.append('lawyerId', payload.lawyerId);
   formData.append('title', payload.title);
   formData.append('content', payload.content);
@@ -33,13 +33,13 @@ export function createDirectRequest(payload, files = []) {
 }
 
 // 의뢰인이 보낸 의뢰 목록 — MyLawyerRequestsPage에서 사용
-export function getSentRequests(userId) {
-  return request(`/api/requestlist/requests/sent?userId=${userId}`);
+export function getSentRequests() {
+  return request('/api/requestlist/requests/sent');
 }
 
 // 변호사가 받은 의뢰 목록 — LawyerReceivedRequestsPage에서 사용
-export function getReceivedRequests(lawyerId) {
-  return request(`/api/requestlist/requests/received?lawyerId=${lawyerId}`);
+export function getReceivedRequests() {
+  return request('/api/requestlist/requests/received');
 }
 
 // 의뢰 단건 상세 조회 — DirectRequestDetailPage에서 사용
@@ -47,9 +47,9 @@ export function getDirectRequestDetail(matchId) {
   return request(`/api/requestlist/requests/${matchId}`);
 }
 
-// 변호사가 의뢰 수락 → 상태 ACCEPTED
-export function acceptDirectRequest(matchId, lawyerId) {
-  return request(`/api/requestlist/requests/${matchId}/accept?lawyerId=${lawyerId}`, {
+// 변호사가 의뢰 수락 → 상태 ACCEPTED (서버가 JWT로 lawyerId 확인)
+export function acceptDirectRequest(matchId) {
+  return request(`/api/requestlist/requests/${matchId}/accept`, {
     method: 'PATCH',
   });
 }
@@ -65,9 +65,9 @@ export function rejectDirectRequest(matchId, payload) {
   });
 }
 
-// 의뢰인이 의뢰 취소 → 상태 CANCELLED
-export function cancelDirectRequest(matchId, userId) {
-  return request(`/api/requestlist/requests/${matchId}/cancel?userId=${userId}`, {
+// 의뢰인이 의뢰 취소 → 상태 CANCELLED (서버가 JWT로 userId 확인)
+export function cancelDirectRequest(matchId) {
+  return request(`/api/requestlist/requests/${matchId}/cancel`, {
     method: 'PATCH',
   });
 }

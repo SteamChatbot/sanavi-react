@@ -2,25 +2,20 @@ import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useForm } from '../hooks/useForm';
 import './LawyerVerifyPage.css';
 
 const SPECIALTY_OPTIONS = ['산재', '노동법', '민사', '형사', '행정', '산재·노동법', '노동·민사'];
 
 export function LawyerVerifyPage({ user }) {
-  const [form, setForm] = useState({
+  const { form, setForm, errors, setErrors, handleChange } = useForm({
     name: '', licenseNo: '', firm: '', careerYears: '', bio: '', specialties: [],
   });
-  const [certFile,  setCertFile]  = useState(null);
-  const [photo,     setPhoto]     = useState(null);
+  const [certFile,     setCertFile]     = useState(null);
+  const [photo,        setPhoto]        = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [errors,    setErrors]    = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [loading,   setLoading]   = useState(false);
-
-  const handleChange = e => {
-    setForm(p => ({ ...p, [e.target.id]: e.target.value }));
-    setErrors(p => ({ ...p, [e.target.id]: '' }));
-  };
+  const [submitted,    setSubmitted]    = useState(false);
+  const [loading,      setLoading]      = useState(false);
 
   const toggleSpecialty = s =>
     setForm(p => ({

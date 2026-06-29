@@ -188,7 +188,7 @@ export default function BoardDetailPage({ user, onLogout }) {
             <span className="detail-meta__views">조회 {post.viewCount}</span>
 
             <div className="detail-meta__actions">
-              {(isAuthor || isAdmin) && (
+              {(isAuthor || admin) && (
                 <>
                   {isAuthor && (
                     <Button

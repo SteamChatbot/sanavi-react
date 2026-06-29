@@ -10,6 +10,7 @@ import Badge from '../components/Badge';
 import Button from '../components/Button';
 import Pagination from '../components/Pagination';
 import { getMatchList } from '../api/matchApi';
+import { isLawyer } from '../constants/roles';
 import './MatchBoardPage.css';
 
 const STATUS_MAP = {
@@ -20,14 +21,16 @@ const STATUS_MAP = {
 };
 
 export default function MatchBoardPage({ user }) {
-  const isLawyer = user?.role?.toUpperCase().replace('ROLE_', '') === 'LAWYER';
+  const lawyer = isLawyer(user?.role);
   const [items, setItems]           = useState([]);
   const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading]       = useState(true);
   const size = 10;
 
   const fetchList = async (p = page) => {
+    setLoading(true);
     try {
       const res = await getMatchList({ page: p, size });
       setItems(res?.data?.contents ?? []);
@@ -36,6 +39,8 @@ export default function MatchBoardPage({ user }) {
     } catch (e) {
       console.error(e);
       alert(e.message || '목록을 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,10 +56,10 @@ export default function MatchBoardPage({ user }) {
         <div className="mb-header">
           <div>
             <h1 className="mb-header__title">
-              {isLawyer ? '입찰 가능한 의뢰' : '변호사 매칭 의뢰글'}
+              {lawyer ? '입찰 가능한 의뢰' : '변호사 매칭 의뢰글'}
             </h1>
             <p className="mb-header__sub">
-              {isLawyer
+              {lawyer
                 ? '고객이 등록한 의뢰글에 입찰하세요'
                 : '의뢰글을 확인하거나 새 의뢰를 등록하세요'}
             </p>
@@ -78,7 +83,9 @@ export default function MatchBoardPage({ user }) {
                 <span>등록일</span>
               </div>
 
-              {items.length === 0 ? (
+              {loading ? (
+                <div className="mb-empty">의뢰글 불러오는 중...</div>
+              ) : items.length === 0 ? (
                 <div className="mb-empty">의뢰글이 없습니다.</div>
               ) : (
                 items.map(item => {

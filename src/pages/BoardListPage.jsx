@@ -4,10 +4,11 @@ import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Pagination from '../components/Pagination';
 import { getBoardList, deleteBoard } from '../api/boardApi';
+import { isAdmin } from '../constants/roles';
 import './BoardPage.css';
 
 export default function BoardListPage({ user, onLogout }) {
-  const isAdmin = user?.role === 'ADMIN';
+  const admin = isAdmin(user?.role);
 
   const [search, setSearch] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -94,19 +95,19 @@ export default function BoardListPage({ user, onLogout }) {
         </div>
 
         <div className="board-table">
-          <div className={`board-table__head${isAdmin ? ' board-table__head--admin' : ''}`}>
+          <div className={`board-table__head${admin ? ' board-table__head--admin' : ''}`}>
             <span>No</span>
             <span>제목</span>
             <span>조회</span>
             <span>날짜</span>
-            {isAdmin && <span>관리</span>}
+            {admin && <span>관리</span>}
           </div>
 
           {posts.length === 0 ? (
             <div className="board-empty">게시글이 없습니다.</div>
           ) : (
             posts.map((post) => (
-              <div key={post.boardId} className={`board-table__row${isAdmin ? ' board-table__row--admin' : ''}`}>
+              <div key={post.boardId} className={`board-table__row${admin ? ' board-table__row--admin' : ''}`}>
                 <div className="board-row__num">{post.boardId}</div>
 
                 <div className="board-row__content">
@@ -124,7 +125,7 @@ export default function BoardListPage({ user, onLogout }) {
                   {post.createdAt?.slice(0, 10)}
                 </div>
 
-                {isAdmin && (
+                {admin && (
                   <button className="board-row__del" onClick={() => handleDelete(post.boardId)}>
                     삭제
                   </button>

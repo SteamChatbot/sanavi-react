@@ -71,3 +71,23 @@ export function loginMember(payload) {
     }),
   });
 }
+
+/**
+ * 로그아웃 — AT 블랙리스트 등록 + RT 삭제 + 쿠키 초기화
+ * POST /api/members/logout
+ */
+export function logoutMember() {
+  return request('/api/members/logout', { method: 'POST' });
+}
+
+/**
+ * AT 연장 — RT 쿠키로 새 AT 발급 (http.js 인터셉터 우회, 명시적 호출용)
+ * POST /api/members/refresh
+ */
+export async function refreshToken() {
+  const res = await fetch('/api/members/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('토큰 갱신 실패');
+}

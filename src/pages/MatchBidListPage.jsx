@@ -9,6 +9,7 @@ import {
   getMatchDetail, getBidList, selectBid, rejectBid, cancelBid,
   updateMatchStatus, createBid, getFileDownloadUrl,
 } from '../api/matchApi';
+import { parseRole, isLawyer } from '../constants/roles';
 import './MatchBidListPage.css';
 
 const STATUS_MAP = {
@@ -22,8 +23,8 @@ export default function MatchBidListPage({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const role     = user?.role?.toUpperCase().replace('ROLE_', '');
-  const isLawyer = role === 'LAWYER';
+  const role     = parseRole(user?.role);
+  const lawyer   = isLawyer(user?.role);
 
   const [match, setMatch]     = useState(null);
   const [bids, setBids]       = useState([]);
@@ -171,7 +172,7 @@ export default function MatchBidListPage({ user }) {
               <div className="mbl-section-title">
                 <span>입찰 변호사 목록</span>
                 <span className="mbl-bid-count">{bids.length}건 · 입찰가 낮은 순</span>
-                {isLawyer && !isClosed && (
+                {lawyer && !isClosed && (
                   <Button
                     variant={showBidForm ? 'outline' : 'primary'}
                     size="xs"
@@ -183,7 +184,7 @@ export default function MatchBidListPage({ user }) {
               </div>
 
               {/* 변호사 입찰 폼 — 인라인 */}
-              {isLawyer && showBidForm && (
+              {lawyer && showBidForm && (
                 <form className="mbl-bid-form-inline" onSubmit={handleBidSubmit} noValidate>
                   <div className="mbl-bid-form-row">
                     <div className="mbl-field" style={{ flex: 1 }}>
@@ -251,7 +252,7 @@ export default function MatchBidListPage({ user }) {
                             </>
                           )}
                           {/* 변호사 본인 입찰 취소 */}
-                          {isLawyer && bid.lawyerId === user?.userId && (
+                          {lawyer && bid.lawyerId === user?.userId && (
                             <Button variant="outline" size="xs" onClick={() => handleCancelBid(bid)}>취소</Button>
                           )}
                         </>

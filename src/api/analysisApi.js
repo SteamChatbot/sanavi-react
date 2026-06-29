@@ -5,11 +5,11 @@ import { request } from './http';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-// Input:  form { name, age, job, disease, inspector }, user (비로그인 시 null)
+// Input:  form { name, age, job, disease, inspector }
 // Output: ApiResponse<{ taskId, status }> — status: 'PROCESSING'
 // 책임:   산재 분석 요청 — backend-springboot가 ai_count 체크 후 ai-api로 중계
-//         비로그인 시 userId=null 전달, DB 저장 없이 분석만 수행
-export function submitAnalysis(form, user) {
+//         비로그인 시 쿠키 없음 → 서버가 guest 처리, DB 저장 없이 분석만 수행
+export function submitAnalysis(form) {
   return request('/api/analysis', {
     method: 'POST',
     headers: JSON_HEADERS,
@@ -19,7 +19,6 @@ export function submitAnalysis(form, user) {
       job: form.job,
       disease: form.disease,
       inspector: form.inspector,
-      userId: user?.userId || null,
     }),
   });
 }
@@ -43,18 +42,17 @@ export function sendAdvisorChat({ context, history, question }) {
   });
 }
 
-// Input:  userId (String)
 // Output: ApiResponse<List<AnalysisHistoryItemDto>>
 // 책임:   내 분석 이력 조회 — 최신순 정렬
-export function fetchMyHistory(userId) {
-  return request(`/api/analysis/history/${encodeURIComponent(userId)}`);
+export function fetchMyHistory() {
+  return request('/api/analysis/history');
 }
 
-// Input:  taskId (String), userId (String)
+// Input:  taskId (String)
 // Output: ApiResponse<Void>
-// 책임:   분석 결과 논리 삭제 (deleted=0) — userId 불일치 시 서버에서 404
-export function deleteMyAnalysis(taskId, userId) {
-  return request(`/api/analysis/${taskId}?userId=${encodeURIComponent(userId)}`, {
+// 책임:   분석 결과 논리 삭제 (deleted=0) — 소유자 확인은 서버가 JWT userId로 처리
+export function deleteMyAnalysis(taskId) {
+  return request(`/api/analysis/${taskId}`, {
     method: 'DELETE',
   });
 }

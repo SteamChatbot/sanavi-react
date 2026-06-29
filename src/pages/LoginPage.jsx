@@ -4,47 +4,19 @@ import Navbar from '../components/Navbar';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { loginMember } from '../api/authApi';
+import { parseRole } from '../constants/roles';
+import { useForm } from '../hooks/useForm';
 import './AuthPage.css';
 
-function normalizeRole(role) {
-  if (!role) return 'USER';
-
-  const normalized = String(role)
-    .toUpperCase()
-    .replace('ROLE_', '');
-
-  if (normalized === 'USER') return 'USER';
-  if (normalized === 'ADMIN') return 'ADMIN';
-  if (normalized === 'LAWYER') return 'LAWYER';
-
-  return normalized;
-}
-
 export default function LoginPage({ onLogin }) {
-  const [form, setForm] = useState({
+  const { form, errors, setErrors, handleChange } = useForm({
     userId: '',
     password: '',
   });
 
-  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    const { id, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [id]: '',
-      submit: '',
-    }));
-  };
 
   const validate = () => {
     const nextErrors = {};
@@ -83,7 +55,7 @@ export default function LoginPage({ onLogin }) {
       const loginUser = {
         userId: data.userId || data.loginId || form.userId.trim(),
         name: data.name || data.nickname || form.userId.trim(),
-        role: normalizeRole(data.role),
+        role: parseRole(data.role),
         subscribe: Boolean(data.subscribe),
       };
 
@@ -115,6 +87,7 @@ export default function LoginPage({ onLogin }) {
           <h1 className="auth-title">다시 만나서 반갑습니다</h1>
           <p className="auth-sub">계속하려면 로그인해 주세요</p>
 
+          {/* 소셜 로그인 — 미구현 (제외)
           <div className="social-grid">
             <button type="button" className="social-btn social-btn--kakao">
               <span className="social-btn__icon">🔑</span> 카카오
@@ -127,6 +100,7 @@ export default function LoginPage({ onLogin }) {
           <div className="auth-divider">
             <span>또는 아이디로</span>
           </div>
+          */}
 
           <form onSubmit={handleSubmit} className="auth-form" noValidate>
             <Input

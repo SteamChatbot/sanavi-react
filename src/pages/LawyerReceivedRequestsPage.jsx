@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import Navbar from '../components/Navbar';
 import { getReceivedRequests } from '../api/requestListApi';
+import { isLawyer } from '../constants/roles';
 
 import './LawyerPage.css';
 
@@ -21,10 +22,6 @@ function getStatusLabel(status) {
   }
 }
 
-function isLawyerRole(role) {
-  return String(role || '').toUpperCase().includes('LAWYER');
-}
-
 export default function LawyerReceivedRequestsPage({ user, onLogout }) {
   const navigate = useNavigate();
 
@@ -39,7 +36,7 @@ export default function LawyerReceivedRequestsPage({ user, onLogout }) {
       return;
     }
 
-    if (!isLawyerRole(user.role)) {
+    if (!isLawyer(user.role)) {
       alert('변호사 회원만 접근할 수 있습니다.');
       navigate('/');
       return;

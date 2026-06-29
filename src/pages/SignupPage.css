@@ -233,3 +233,111 @@
   color: var(--color-primary);
   font-weight: 700;
 }
+
+.signup-region-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signup-region-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.signup-region-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signup-region-row .signup-region-select {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 120px;
+}
+
+.signup-region-row .signup-region-detail {
+  flex: 1 1 100%;
+}
+
+.signup-region-select {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: auto;
+}
+
+.signup-region-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.signup-region-select--error {
+  border-color: var(--color-error, #ef4444);
+}
+
+.signup-region-detail {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.signup-region-detail::placeholder {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.signup-region-error {
+  font-size: 12px;
+  color: var(--color-error, #ef4444);
+}
+
+.signup-specialty-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signup-specialty-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.signup-specialty-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signup-specialty-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.signup-specialty-item input {
+  display: none;
+}
+
+.signup-specialty-item--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}

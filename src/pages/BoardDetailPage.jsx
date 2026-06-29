@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Avatar from '../components/Avatar';
 import { getBoardDetail, deleteBoard } from '../api/boardApi';
+import { isAdmin } from '../constants/roles';
 import './BoardPage.css';
 
 export default function BoardDetailPage({ user, onLogout }) {
@@ -19,9 +20,7 @@ export default function BoardDetailPage({ user, onLogout }) {
   // 임시 테스트
   const currentUserId = user?.userId || 'testuser';
   const isAuthor = post?.userId === currentUserId;
-  const isAdmin = user?.role === 'ADMIN';
-
-  //const isAdmin = user?.role === 'ADMIN';
+  const admin = isAdmin(user?.role);
   //  const isAuthor = user?.userId === post.userId;
 
 
@@ -118,7 +117,7 @@ export default function BoardDetailPage({ user, onLogout }) {
             <span className="detail-meta__views">조회 {post.viewCount}</span>
 
             <div className="detail-meta__actions">
-              {(isAuthor || isAdmin) && (
+              {(isAuthor || admin) && (
                 <>
                   {isAuthor && (
                     <Button
@@ -185,7 +184,7 @@ export default function BoardDetailPage({ user, onLogout }) {
                 <p className="comment-item__text">{comment.text}</p>
               </div>
 
-              {(isAdmin || user?.name === comment.nickname.charAt(0)) && (
+              {(admin || user?.name === comment.nickname.charAt(0)) && (
                 <Button variant="danger" size="xs" onClick={() => handleDeleteComment(comment.id)}>
                   삭제
                 </Button>

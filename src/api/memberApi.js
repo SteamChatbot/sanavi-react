@@ -4,12 +4,12 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-export function getMemberInfo(userId) {
-  return request(`/api/members/${encodeURIComponent(userId)}`);
+export function getMemberInfo() {
+  return request('/api/members/me');
 }
 
-export function updateMemberInfo(userId, payload) {
-  return request(`/api/members/${encodeURIComponent(userId)}`, {
+export function updateMemberInfo(payload) {
+  return request('/api/members/me', {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify({

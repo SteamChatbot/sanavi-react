@@ -14,7 +14,6 @@ const NAV_LINKS = [
   { to: '/board', label: '게시판' },
   { to: '/matchboard', label: '의뢰글' },
   { to: '/subscribe', label: '구독' },
-  { to: '/match', label: '매칭' },
   { to: '/lawyers', label: '변호사 찾기' },
   { to: '/my-lawyer-requests', label: '내 의뢰' },
 ];

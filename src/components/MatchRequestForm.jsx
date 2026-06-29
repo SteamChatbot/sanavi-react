@@ -1,6 +1,12 @@
+// 목적: 의뢰글 작성 공용 폼 컴포넌트 — 경매 의뢰(MatchWritePage)·직접 의뢰(LawyerRequestWritePage) 공용
+// Input:  initialValues (폼 초기값), fixedMatchType (고정 시 라디오 숨김), requireFile (PDF 필수 여부)
+//         priceHint·uploadTitle·notice (페이지별 안내 문구 커스터마이즈)
+// Output: onSubmit({ form, files }) 콜백 — 부모가 FormData 조립 후 API 호출
+// 기능:   제목·의뢰자명·사건경위·희망보수·희망지역·매칭방식 입력 + PDF 첨부 + 유효성 검사
 import React, { useState } from 'react';
 import Input from './Input';
 import Button from './Button';
+import { SIDO_LIST } from '../constants/regions';
 import './MatchRequestForm.css';
 
 const DEFAULT_FORM = {
@@ -8,6 +14,7 @@ const DEFAULT_FORM = {
   clientName: '',
   content: '',
   price: '',
+  preferredRegion: '',
   matchType: 'AUCTION',
 };
 
@@ -220,6 +227,19 @@ export default function MatchRequestForm({
             {priceHint}
           </p>
         )}
+
+        <div className="field">
+          <label className="field__label" htmlFor="preferredRegion">희망 상담 지역 (선택)</label>
+          <select
+            id="preferredRegion"
+            className="mw-region-select"
+            value={form.preferredRegion}
+            onChange={handleChange}
+          >
+            <option value="">지역 무관</option>
+            {SIDO_LIST.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
 
         {showMatchType && !fixedMatchType && (
           <div className="field">

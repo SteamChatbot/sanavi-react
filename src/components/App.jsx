@@ -12,7 +12,6 @@ import BoardDetailPage    from '../pages/BoardDetailPage';
 import BoardWritePage     from '../pages/BoardWritePage';
 import SubscribePage      from '../pages/SubscribePage';
 import { LawyerVerifyPage } from '../pages/LawyerVerifyPage';
-import MatchPage            from '../pages/MatchPage';
 import MatchBoardPage       from '../pages/MatchBoardPage';
 import MatchWritePage       from '../pages/MatchWritePage';
 import MatchBidListPage     from '../pages/MatchBidListPage';
@@ -80,8 +79,7 @@ export default function App() {
         <Route path="/subscribe"      element={<SubscribePage    user={user} onUserUpdate={handleUpdateUser} />} />
         <Route path="/lawyer/verify"  element={<LawyerVerifyPage user={user} />} />
 
-        {/* 변호사 매칭 — role에 따라 컴포넌트 내부에서 UI 분기 */}
-        <Route path="/match"                   element={<MatchPage        user={user} />} />
+        {/* 변호사 매칭 의뢰글 */}
         <Route path="/matchboard"              element={<MatchBoardPage   user={user} />} />
         <Route path="/matchboard/write"        element={<MatchWritePage   user={user} />} />
         <Route path="/matchboard/:id"          element={<MatchBidListPage user={user} />} />

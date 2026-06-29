@@ -1,3 +1,6 @@
+// 목적: 의뢰글 작성 페이지 — MatchRequestForm 래핑, 등록 후 /matchboard 이동
+// Input:  user (로그인 유저 — 비로그인 시 /login 리다이렉트)
+// Output: FormData(title·content·price·matchType·preferredRegion·pdf) → POST /api/matches
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,6 +25,7 @@ export default function MatchWritePage({ user, onLogout }) {
     formData.append('content',   form.content);
     formData.append('price',     form.price);
     formData.append('matchType', 'AUCTION');
+    if (form.preferredRegion) formData.append('preferredRegion', form.preferredRegion);
     if (files?.[0]) formData.append('pdf', files[0]);
 
     await createMatch(formData);

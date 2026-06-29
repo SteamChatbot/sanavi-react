@@ -42,9 +42,11 @@ export default function App() {
   const [user, setUser] = useState(getSavedUser);
 
   // 로그인 성공 시 백엔드 응답(user 객체)을 state + localStorage에 저장
+  // atExpiresAt: 로그인 시점 + 50분(ms) — Navbar 타이머 기준값
   const handleLogin = (loginUser) => {
-    setUser(loginUser);
-    localStorage.setItem('sanaviUser', JSON.stringify(loginUser));
+    const userWithExpiry = { ...loginUser, atExpiresAt: Date.now() + 3000000 };
+    setUser(userWithExpiry);
+    localStorage.setItem('sanaviUser', JSON.stringify(userWithExpiry));
   };
 
   // 로그아웃 — state 초기화 + localStorage 제거

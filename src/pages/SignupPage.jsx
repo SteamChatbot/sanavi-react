@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { SIDO_LIST, SIGUNGU_MAP } from '../constants/regions';
+import { SPECIALTY_LIST } from '../constants/specialties';
 
 import {
   checkUserId,
@@ -12,6 +14,7 @@ import {
   signupMember,
 } from '../api/authApi';
 
+import { useForm } from '../hooks/useForm';
 import './AuthPage.css';
 import './SignupPage.css';
 
@@ -20,7 +23,7 @@ export default function SignupPage() {
 
   const [step, setStep] = useState(0);
 
-  const [form, setForm] = useState({
+  const { form, setForm, errors, setErrors, handleChange: baseHandleChange } = useForm({
     userId: '',
     password: '',
     name: '',
@@ -48,44 +51,27 @@ export default function SignupPage() {
   const [emailSendLoading, setEmailSendLoading] = useState(false);
   const [emailVerifyLoading, setEmailVerifyLoading] = useState(false);
 
-  const [errors, setErrors] = useState({});
-
   const [role, setRole] = useState('role_user');
 
   const [lawyerInfo, setLawyerInfo] = useState({
     firmName: '',
-    region: '전체',
+    sido: '',
+    sigungu: '',
+    regionDetail: '',
     experienceYears: 0,
-    specialty: '산재',
+    specialty: [],
   });
 
   const handleChange = (e) => {
+    baseHandleChange(e);
     const { id, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [id]: '',
-      submit: '',
-    }));
-
     if (id === 'userId') {
       setIdChecked(false);
     }
-
     if (id === 'email') {
       setEmailSent(false);
       setEmailVerified(false);
-
-      setForm((prev) => ({
-        ...prev,
-        email: value,
-        emailCode: '',
-      }));
+      setForm((prev) => ({ ...prev, emailCode: '' }));
     }
   };
 
@@ -252,8 +238,10 @@ export default function SignupPage() {
         nextErrors.firmName = '법률사무소명을 입력해 주세요.';
       }
 
-      if (!lawyerInfo.region.trim()) {
-        nextErrors.region = '활동 지역을 입력해 주세요.';
+      if (!lawyerInfo.sido) {
+        nextErrors.region = '도/시를 선택해 주세요.';
+      } else if (!lawyerInfo.sigungu) {
+        nextErrors.region = '시/군/구를 선택해 주세요.';
       }
 
       if (
@@ -264,8 +252,8 @@ export default function SignupPage() {
         nextErrors.experienceYears = '경력 연수를 올바르게 입력해 주세요.';
       }
 
-      if (!lawyerInfo.specialty.trim()) {
-        nextErrors.specialty = '전문 분야를 입력해 주세요.';
+      if (lawyerInfo.specialty.length === 0) {
+        nextErrors.specialty = '전문 분야를 하나 이상 선택해 주세요.';
       }
     }
 
@@ -334,16 +322,16 @@ export default function SignupPage() {
           ? lawyerInfo.firmName.trim()
           : null,
 
-        region: role === 'role_lawyer'
-          ? lawyerInfo.region.trim()
-          : null,
+        sido:         role === 'role_lawyer' ? lawyerInfo.sido         : null,
+        sigungu:      role === 'role_lawyer' ? lawyerInfo.sigungu      : null,
+        regionDetail: role === 'role_lawyer' ? lawyerInfo.regionDetail : null,
 
         experienceYears: role === 'role_lawyer'
           ? Number(lawyerInfo.experienceYears || 0)
           : null,
 
         specialty: role === 'role_lawyer'
-          ? lawyerInfo.specialty.trim()
+          ? lawyerInfo.specialty.join(', ')
           : null,
       });
 
@@ -364,6 +352,17 @@ export default function SignupPage() {
     setLawyerInfo((prev) => ({
       ...prev,
       [id]: value,
+      // 도 바뀌면 시/군/구 초기화
+      ...(id === 'sido' ? { sigungu: '' } : {}),
+    }));
+  };
+
+  const toggleSpecialty = (item) => {
+    setLawyerInfo((prev) => ({
+      ...prev,
+      specialty: prev.specialty.includes(item)
+        ? prev.specialty.filter(s => s !== item)
+        : [...prev.specialty, item],
     }));
 
     setErrors((prev) => ({
@@ -622,38 +621,79 @@ export default function SignupPage() {
                     errorMsg={errors.firmName}
                   />
 
-                  <div className="auth-grid-2">
-                    <Input
-                      id="region"
-                      label="활동 지역"
-                      placeholder="예: 서울"
-                      value={lawyerInfo.region}
-                      onChange={handleLawyerInfoChange}
-                      state={errors.region ? 'error' : 'default'}
-                      errorMsg={errors.region}
-                    />
+                  <div className="signup-region-wrap">
+                    <label className="signup-region-label">활동 지역</label>
+                    <div className="signup-region-row">
+                      <select
+                        id="sido"
+                        className={`signup-region-select${errors.region ? ' signup-region-select--error' : ''}`}
+                        value={lawyerInfo.sido}
+                        onChange={handleLawyerInfoChange}
+                      >
+                        <option value="">도/시 선택</option>
+                        {SIDO_LIST.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
 
-                    <Input
-                      id="experienceYears"
-                      label="경력 연수"
-                      type="number"
-                      placeholder="예: 5"
-                      value={lawyerInfo.experienceYears}
-                      onChange={handleLawyerInfoChange}
-                      state={errors.experienceYears ? 'error' : 'default'}
-                      errorMsg={errors.experienceYears}
-                    />
+                      <select
+                        id="sigungu"
+                        className={`signup-region-select${errors.region ? ' signup-region-select--error' : ''}`}
+                        value={lawyerInfo.sigungu}
+                        onChange={handleLawyerInfoChange}
+                        disabled={!lawyerInfo.sido}
+                      >
+                        <option value="">시/군/구 선택</option>
+                        {(SIGUNGU_MAP[lawyerInfo.sido] ?? []).map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+
+                      <input
+                        id="regionDetail"
+                        className="signup-region-detail"
+                        type="text"
+                        placeholder="세부 주소 (선택)"
+                        value={lawyerInfo.regionDetail}
+                        onChange={handleLawyerInfoChange}
+                      />
+                    </div>
+                    {errors.region && (
+                      <span className="signup-region-error">{errors.region}</span>
+                    )}
                   </div>
 
                   <Input
-                    id="specialty"
-                    label="전문 분야"
-                    placeholder="예: 산업재해, 직업병, 요양급여"
-                    value={lawyerInfo.specialty}
+                    id="experienceYears"
+                    label="경력 연수"
+                    type="number"
+                    placeholder="예: 5"
+                    value={lawyerInfo.experienceYears}
                     onChange={handleLawyerInfoChange}
-                    state={errors.specialty ? 'error' : 'default'}
-                    errorMsg={errors.specialty}
+                    state={errors.experienceYears ? 'error' : 'default'}
+                    errorMsg={errors.experienceYears}
                   />
+
+                  <div className="signup-specialty-wrap">
+                    <label className="signup-region-label">
+                      전문 분야 <span className="signup-specialty-hint">(복수 선택 가능)</span>
+                    </label>
+                    <div className="signup-specialty-grid">
+                      {SPECIALTY_LIST.map(item => (
+                        <label key={item} className={`signup-specialty-item${lawyerInfo.specialty.includes(item) ? ' signup-specialty-item--active' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={lawyerInfo.specialty.includes(item)}
+                            onChange={() => toggleSpecialty(item)}
+                          />
+                          {item}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.specialty && (
+                      <span className="signup-region-error">{errors.specialty}</span>
+                    )}
+                  </div>
                 </div>
               )}
 

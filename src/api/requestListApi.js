@@ -2,9 +2,15 @@
 // 상태 전이: PENDING → ACCEPTED(변호사 수락) | REJECTED(변호사 거절) | CANCELLED(의뢰인 취소)
 import { request } from './http';
 
-// 변호사 목록 조회 — LawyerListPage에서 사용
-export function getLawyerList() {
-  return request('/api/requestlist/lawyers');
+// Input:  { specialty, sido } — 선택 필터 (미전달 시 전체)
+// Output: ApiResponse<List<LawyerListResponseDto>>
+// 책임:   변호사 목록 조회 (전문분야·지역 필터 포함)
+export function getLawyerList({ specialty, sido } = {}) {
+  const params = new URLSearchParams();
+  if (specialty) params.set('specialty', specialty);
+  if (sido)      params.set('sido', sido);
+  const qs = params.toString();
+  return request(`/api/requestlist/lawyers${qs ? `?${qs}` : ''}`);
 }
 
 // 변호사 상세 조회 — LawyerDetailPage에서 사용

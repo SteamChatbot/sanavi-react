@@ -151,6 +151,8 @@ export default function MatchBidListPage({ user }) {
               <div className="mbl-match-meta">
                 <span className="mbl-match-price">희망 보수 ₩{match.price?.toLocaleString()}</span>
                 <span className="mbl-match-sep">·</span>
+                <span className="mbl-match-region">희망 지역 {match.preferredRegion || '무관'}</span>
+                <span className="mbl-match-sep">·</span>
                 <span className="mbl-match-name">의뢰인 {match.requesterName}</span>
               </div>
               <p className="mbl-match-content">{match.content}</p>

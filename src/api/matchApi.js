@@ -3,11 +3,15 @@ import { request } from './http';
 // 책임: /api/matches 엔드포인트 호출 함수 모음
 //       의뢰글 CRUD + 입찰 등록·목록·확정 API 래핑
 
-// Input:  { page, size } — role_user면 서버가 JWT userId로 자동 필터, role_lawyer면 전체 조회
+// Input:  { page, size, status, preferredRegion, minPrice } — 필터 미전달 시 조건 없음
+//         role_user면 서버가 JWT userId로 자동 필터, role_lawyer면 전체 조회
 // Output: ApiResponse<PageResponse<MatchListResponseDto>>
-// 책임:   의뢰글 목록 조회
-export function getMatchList({ page = 1, size = 10 } = {}) {
+// 책임:   의뢰글 목록 조회 (필터 파라미터 포함)
+export function getMatchList({ page = 1, size = 10, status, preferredRegion, minPrice } = {}) {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (status)          params.set('status', status);
+  if (preferredRegion) params.set('preferredRegion', preferredRegion);
+  if (minPrice > 0)    params.set('minPrice', String(minPrice));
   return request(`/api/matches?${params.toString()}`);
 }
 

@@ -74,3 +74,27 @@ export function deleteBoardFile(boardId, fileId) {
     method: 'DELETE',
   });
 }
+
+export function getBoardComments(boardId) {
+  return request(`/api/boards/${boardId}/comments`);
+}
+
+export function createBoardComment(boardId, payload) {
+  return request(`/api/boards/${boardId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBoardComment(boardId, commentId, userId) {
+  const params = new URLSearchParams({
+    userId,
+  });
+
+  return request(`/api/boards/${boardId}/comments/${commentId}?${params.toString()}`, {
+    method: 'DELETE',
+  });
+}

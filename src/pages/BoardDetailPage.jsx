@@ -3,7 +3,13 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Avatar from '../components/Avatar';
-import { getBoardDetail, deleteBoard } from '../api/boardApi';
+import {
+  getBoardDetail,
+  deleteBoard,
+  getBoardComments,
+  createBoardComment,
+  deleteBoardComment,
+} from '../api/boardApi';
 import './BoardPage.css';
 
 export default function BoardDetailPage({ user, onLogout }) {
@@ -14,16 +20,33 @@ export default function BoardDetailPage({ user, onLogout }) {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
 
-  // 임시 테스트
-  const currentUserId = user?.userId || 'testuser';
-  const isAuthor = post?.userId === currentUserId;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAuthor = user?.userId && post?.userId === user.userId;
+  const isAdmin =
+    user?.role === 'ADMIN' ||
+    user?.role === 'role_admin';
 
   //const isAdmin = user?.role === 'ADMIN';
   //  const isAuthor = user?.userId === post.userId;
 
+  const fetchComments = async () => {
+    if (!id) return;
+
+    setCommentLoading(true);
+
+    try {
+      const result = await getBoardComments(id);
+      setComments(result.data || []);
+    } catch (error) {
+      console.error(error);
+      alert(error.message || '댓글 목록을 불러오지 못했습니다.');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -48,6 +71,11 @@ export default function BoardDetailPage({ user, onLogout }) {
     fetchPost();
   }, [id, navigate]);
 
+  useEffect(() => {
+    fetchComments();
+
+  }, [id]);
+
   const handleDeletePost = async () => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까?')) return;
 
@@ -62,25 +90,67 @@ export default function BoardDetailPage({ user, onLogout }) {
     }
   };
 
-  const handleDeleteComment = (commentId) => {
-    if (!window.confirm('이 댓글을 삭제하시겠습니까?')) return;
-    setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+
+
+  const handleDeleteComment = async (commentId) => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (!window.confirm('댓글을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await deleteBoardComment(id, commentId, user.userId);
+
+      setComments((prev) =>
+        prev.filter((comment) => comment.commentId !== commentId)
+      );
+    } catch (error) {
+      alert(error.message || '댓글 삭제에 실패했습니다.');
+    }
   };
 
-  const handleAddComment = () => {
-    if (!commentInput.trim()) return;
+  const handleAddComment = async () => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
 
-    setComments((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        nickname: user?.name || '익명',
-        date: new Date().toISOString().slice(0, 10),
-        text: commentInput.trim(),
-      },
-    ]);
+    const content = commentInput.trim();
 
-    setCommentInput('');
+    if (!content) {
+      alert('댓글 내용을 입력해 주세요.');
+      return;
+    }
+
+    if (content.length > 500) {
+      alert('댓글은 500자 이하로 입력해 주세요.');
+      return;
+    }
+
+    const payload = {
+      userId: user.userId,
+      nickname: user.nickname || user.name || user.userId,
+      content,
+    };
+
+    setCommentSubmitting(true);
+
+    try {
+      await createBoardComment(id, payload);
+
+      setCommentInput('');
+      await fetchComments();
+    } catch (error) {
+      alert(error.message || '댓글 등록에 실패했습니다.');
+    } finally {
+      setCommentSubmitting(false);
+    }
   };
 
   if (!post) {
@@ -171,41 +241,82 @@ export default function BoardDetailPage({ user, onLogout }) {
         )}
 
         <div className="detail-comments">
-          <h2 className="comments-title">댓글 {comments.length}</h2>
-
-          {comments.map((comment) => (
-            <div key={comment.id} className="comment-item">
-              <Avatar name={comment.nickname} size="sm" />
-
-              <div className="comment-item__body">
-                <div className="comment-item__top">
-                  <span className="comment-item__name">{comment.nickname}</span>
-                  <span className="comment-item__date">{comment.date}</span>
-                </div>
-                <p className="comment-item__text">{comment.text}</p>
-              </div>
-
-              {(isAdmin || user?.name === comment.nickname.charAt(0)) && (
-                <Button variant="danger" size="xs" onClick={() => handleDeleteComment(comment.id)}>
-                  삭제
-                </Button>
-              )}
-            </div>
-          ))}
+          <h2 className="comments-title">
+            댓글 {comments.length}
+          </h2>
 
           <div className="comment-input-row">
-            <input
-              className="comment-input"
-              type="text"
-              placeholder="댓글을 입력하세요..."
+            <textarea
+              className="comment-input comment-textarea"
+              placeholder={
+                user?.userId
+                  ? '댓글을 입력하세요...'
+                  : '로그인 후 댓글을 작성할 수 있습니다.'
+              }
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+              disabled={!user?.userId || commentSubmitting}
+              rows={3}
             />
-            <Button variant="primary" size="sm" onClick={handleAddComment}>
-              등록
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleAddComment}
+              disabled={!user?.userId || commentSubmitting}
+            >
+              {commentSubmitting ? '등록 중' : '등록'}
             </Button>
           </div>
+
+          {commentLoading && (
+            <div className="comment-empty">
+              댓글을 불러오는 중입니다.
+            </div>
+          )}
+
+          {!commentLoading && comments.length === 0 && (
+            <div className="comment-empty">
+              아직 댓글이 없습니다.
+            </div>
+          )}
+
+          {!commentLoading && comments.length > 0 && (
+            <div className="comment-list">
+              {comments.map((comment) => {
+                const isCommentAuthor =
+                  user?.userId && user.userId === comment.userId;
+
+                return (
+                  <div key={comment.commentId} className="comment-item">
+                    <Avatar name={comment.nickname} size="sm" />
+
+                    <div className="comment-item__body">
+                      <div className="comment-item__top">
+                        <span className="comment-item__name">
+                          {comment.nickname}
+                        </span>
+                      </div>
+
+                      <p className="comment-item__text">
+                        {comment.content}
+                      </p>
+                    </div>
+
+                    {isCommentAuthor && (
+                      <Button
+                        variant="danger"
+                        size="xs"
+                        onClick={() => handleDeleteComment(comment.commentId)}
+                      >
+                        삭제
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

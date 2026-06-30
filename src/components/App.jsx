@@ -23,6 +23,15 @@ import LawyerRequestWritePage from '../pages/LawyerRequestWritePage';
 import MyLawyerRequestsPage from '../pages/MyLawyerRequestsPage';
 import DirectRequestDetailPage from '../pages/DirectRequestDetailPage';
 import LawyerReceivedRequestsPage from '../pages/LawyerReceivedRequestsPage';
+import AdminDashboardPage   from '../pages/admin/AdminDashboardPage';
+import AdminMemberPage      from '../pages/admin/AdminMemberPage';
+import AdminStatisticsPage  from '../pages/admin/AdminStatisticsPage';
+import AdminAnalysisPage    from '../pages/admin/AdminAnalysisPage';
+import AdminBoardPage       from '../pages/admin/AdminBoardPage';
+import AdminMatchBoardPage  from '../pages/admin/AdminMatchBoardPage';
+import AdminMemberRolePage  from '../pages/admin/AdminMemberRolePage';
+import AdminMemberReportPage from '../pages/admin/AdminMemberReportPage';
+import AdminSystemPage      from '../pages/admin/AdminSystemPage';
 
 // 새로고침 후에도 로그인 상태 유지 — localStorage에서 user 복원
 // JSON 파싱 실패(손상된 데이터) 시 자동 초기화
@@ -95,6 +104,17 @@ export default function App() {
         {/* 마이페이지·분석 결과 */}
         <Route path="/mypage"       element={<MyPage             user={user} onLogout={handleLogout} onUserUpdate={handleUpdateUser}/>} />
         <Route path="/analysis/:id" element={<AnalysisDetailPage user={user} />} />
+
+        {/* 운영(관리자) 페이지 */}
+        <Route path="/admin"             element={<AdminDashboardPage  user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/members"     element={<AdminMemberPage     user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/members/reports" element={<AdminMemberReportPage user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/members/roles" element={<AdminMemberRolePage user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/statistics"  element={<AdminStatisticsPage user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/analysis"    element={<AdminAnalysisPage   user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/board"       element={<AdminBoardPage      user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/board/match" element={<AdminMatchBoardPage user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/system"      element={<AdminSystemPage     user={user} onLogout={handleLogout} />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

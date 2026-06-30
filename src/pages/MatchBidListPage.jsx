@@ -5,6 +5,7 @@ import Badge from '../components/Badge';
 import Button from '../components/Button';
 import Avatar from '../components/Avatar';
 import Pagination from '../components/Pagination';
+import ReportModal from '../components/ReportModal';
 import {
   getMatchDetail, getBidList, selectBid, rejectBid, cancelBid,
   updateMatchStatus, createBid, getFileDownloadUrl,
@@ -35,6 +36,7 @@ export default function MatchBidListPage({ user }) {
   const [bidForm, setBidForm]           = useState({ bidPrice: '', message: '' });
   const [bidErrors, setBidErrors]       = useState({});
   const [submitting, setSubmitting]     = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -154,6 +156,15 @@ export default function MatchBidListPage({ user }) {
                 <span className="mbl-match-region">희망 지역 {match.preferredRegion || '무관'}</span>
                 <span className="mbl-match-sep">·</span>
                 <span className="mbl-match-name">의뢰인 {match.requesterName}</span>
+                {user?.userId && user.userId !== match.userId && (
+                  <button
+                    type="button"
+                    className="mbl-report-btn"
+                    onClick={() => setShowReportModal(true)}
+                  >
+                    신고
+                  </button>
+                )}
               </div>
               <p className="mbl-match-content">{match.content}</p>
               {match.files?.length > 0 && (
@@ -289,6 +300,14 @@ export default function MatchBidListPage({ user }) {
           </aside>
         </div>
       </div>
+
+      {showReportModal && (
+        <ReportModal
+          targetUserId={match.userId}
+          targetName={match.requesterName}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </div>
   );
 }

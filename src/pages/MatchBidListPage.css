@@ -10,6 +10,18 @@
 .mbl-match-price{ font-size: 14px; font-weight: 700; color: var(--color-primary); }
 .mbl-match-sep  { color: var(--color-gray-300); }
 .mbl-match-name   { font-size: 13px; color: var(--color-gray-500); }
+.mbl-report-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-gray-400);
+  background: var(--color-gray-100);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.mbl-report-btn:hover { background: var(--color-danger-light); color: var(--color-danger); }
 .mbl-match-region { font-size: 13px; color: var(--color-gray-500); }
 .mbl-match-content { font-size: 13px; color: var(--color-gray-600); line-height: 1.7; padding-top: 10px; border-top: 1px solid var(--color-gray-100); }
 

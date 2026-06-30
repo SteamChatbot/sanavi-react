@@ -22,6 +22,7 @@ export default function BoardDetailPage({ user, onLogout }) {
   const [commentInput, setCommentInput] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const fetchedCommentBoardIdRef = useRef(null);
 
 
   const isAuthor = user?.userId && post?.userId === user.userId;
@@ -39,7 +40,12 @@ export default function BoardDetailPage({ user, onLogout }) {
 
     try {
       const result = await getBoardComments(id);
-      setComments(result.data || []);
+
+      const commentList = Array.isArray(result?.data)
+        ? result.data
+        : [];
+
+      setComments(commentList);
     } catch (error) {
       console.error(error);
       alert(error.message || '댓글 목록을 불러오지 못했습니다.');
@@ -72,8 +78,16 @@ export default function BoardDetailPage({ user, onLogout }) {
   }, [id, navigate]);
 
   useEffect(() => {
-    fetchComments();
+    if (!id) return;
 
+    if (fetchedCommentBoardIdRef.current === id) {
+      return;
+    }
+
+    fetchedCommentBoardIdRef.current = id;
+
+    fetchComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleDeletePost = async () => {
@@ -188,7 +202,7 @@ export default function BoardDetailPage({ user, onLogout }) {
             <span className="detail-meta__views">조회 {post.viewCount}</span>
 
             <div className="detail-meta__actions">
-              {(isAuthor || admin) && (
+              {(isAuthor || isAdmin) && (
                 <>
                   {isAuthor && (
                     <Button

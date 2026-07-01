@@ -286,6 +286,20 @@ export default function AdminStatisticsPage({ user, onLogout }) {
                     <div className="ad-stat-card__label">기간 내 총 분석 요청</div>
                     <div className="ad-stat-card__value">{comboResult.totalAnalysisCount.toLocaleString()}건</div>
                   </div>
+                  <div className="ad-stat-card">
+                    <div className="ad-stat-card__label">작성한 의뢰글 수</div>
+                    <div className="ad-stat-card__value">{comboResult.matchCount.toLocaleString()}건</div>
+                  </div>
+                  <div className="ad-stat-card">
+                    <div className="ad-stat-card__label">매칭 성사율</div>
+                    <div className="ad-stat-card__value">{comboResult.matchSuccessRate}%</div>
+                    <div className="ad-stat-card__delta">{comboResult.matchCount.toLocaleString()}건 중 {comboResult.matchClosedCount.toLocaleString()}건 성사</div>
+                  </div>
+                  <div className="ad-stat-card">
+                    <div className="ad-stat-card__label">낙찰 총액</div>
+                    <div className="ad-stat-card__value">₩{comboResult.totalBidAmount.toLocaleString()}</div>
+                    <div className="ad-stat-card__delta">성사된 의뢰글 기준</div>
+                  </div>
                 </div>
               )}
             </div>

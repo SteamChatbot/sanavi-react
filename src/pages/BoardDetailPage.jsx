@@ -10,6 +10,10 @@ import {
   createBoardComment,
   deleteBoardComment,
 } from '../api/boardApi';
+import {
+  reportBoard,
+  reportBoardComment,
+} from '../api/reportApi';
 import './BoardPage.css';
 
 export default function BoardDetailPage({ user, onLogout }) {
@@ -104,6 +108,29 @@ export default function BoardDetailPage({ user, onLogout }) {
     }
   };
 
+  const handleReportPost = async () => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (isAuthor) {
+      alert('본인이 작성한 게시글은 신고할 수 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('이 게시글을 신고하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await reportBoard(id);
+      alert('신고가 접수되었습니다.');
+    } catch (error) {
+      alert(error.message || '신고에 실패했습니다.');
+    }
+  };
 
 
   const handleDeleteComment = async (commentId) => {
@@ -125,6 +152,30 @@ export default function BoardDetailPage({ user, onLogout }) {
       );
     } catch (error) {
       alert(error.message || '댓글 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleReportComment = async (comment) => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (user.userId === comment.userId) {
+      alert('본인이 작성한 댓글은 신고할 수 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('이 댓글을 신고하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await reportBoardComment(comment.commentId);
+      alert('신고가 접수되었습니다.');
+    } catch (error) {
+      alert(error.message || '신고에 실패했습니다.');
     }
   };
 
@@ -202,6 +253,16 @@ export default function BoardDetailPage({ user, onLogout }) {
             <span className="detail-meta__views">조회 {post.viewCount}</span>
 
             <div className="detail-meta__actions">
+              {!isAuthor && !isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleReportPost}
+                >
+                  신고
+                </Button>
+              )}
+
               {(isAuthor || isAdmin) && (
                 <>
                   {isAuthor && (
@@ -316,6 +377,16 @@ export default function BoardDetailPage({ user, onLogout }) {
                         {comment.content}
                       </p>
                     </div>
+
+                    {!isCommentAuthor && !isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleReportComment(comment)}
+                      >
+                        신고
+                      </Button>
+                    )}
 
                     {isCommentAuthor && (
                       <Button

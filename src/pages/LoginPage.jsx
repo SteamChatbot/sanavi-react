@@ -63,7 +63,7 @@ export default function LoginPage({ onLogin }) {
 
       onLogin?.(loginUser);
 
-      navigate('/agent');
+      navigate('/', { replace: true });
     } catch (error) {
       setErrors((prev) => ({
         ...prev,

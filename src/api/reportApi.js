@@ -12,6 +12,14 @@ export const REPORT_CATEGORIES = [
   '기타',
 ];
 
+export const REPORT_TARGET_TYPES = {
+  MEMBER: 'MEMBER',
+  LAWYER: 'LAWYER',
+  BOARD: 'BOARD',
+  BOARD_COMMENT: 'BOARD_COMMENT',
+  MATCH: 'MATCH',
+};
+
 // Input:  { reportedUserId, category, detail }
 // Output: ApiResponse<Void>
 // 책임:   회원 신고 접수 (reporterId는 서버가 JWT userId로 설정)
@@ -20,5 +28,44 @@ export function reportUser({ reportedUserId, category, detail }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reportedUserId, category, detail }),
+  });
+}
+
+// Input:  { targetType, targetId }
+// Output: ApiResponse<Void>
+// 책임:   게시글/댓글/의뢰글 신고 접수
+//         신고자는 서버가 JWT userId로 설정
+export function reportContent({ targetType, targetId }) {
+  return request('/api/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      targetType,
+      targetId: String(targetId),
+    }),
+  });
+}
+
+// 게시글 신고
+export function reportBoard(boardId) {
+  return reportContent({
+    targetType: REPORT_TARGET_TYPES.BOARD,
+    targetId: boardId,
+  });
+}
+
+// 댓글 신고
+export function reportBoardComment(commentId) {
+  return reportContent({
+    targetType: REPORT_TARGET_TYPES.BOARD_COMMENT,
+    targetId: commentId,
+  });
+}
+
+// 의뢰글 신고
+export function reportMatch(matchId) {
+  return reportContent({
+    targetType: REPORT_TARGET_TYPES.MATCH,
+    targetId: matchId,
   });
 }

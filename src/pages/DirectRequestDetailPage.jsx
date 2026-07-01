@@ -9,6 +9,9 @@ import {
     getDirectRequestDetail,
     rejectDirectRequest,
 } from '../api/requestListApi';
+import {
+    reportMatch
+} from '../api/reportApi';
 
 import './LawyerPage.css';
 
@@ -117,10 +120,46 @@ export default function DirectRequestDetailPage({ user, onLogout }) {
         }
     };
 
+    const handleReportRequest = async () => {
+        if (!user?.userId) {
+            alert('로그인이 필요합니다.');
+            navigate('/login');
+            return;
+        }
+
+        if (request?.userId === user.userId) {
+            alert('본인이 작성한 의뢰글은 신고할 수 없습니다.');
+            return;
+        }
+
+        if (!window.confirm('이 의뢰글을 신고하시겠습니까?')) {
+            return;
+        }
+
+        try {
+            await reportMatch(matchId);
+            alert('신고가 접수되었습니다.');
+        } catch (error) {
+            alert(error.message || '신고에 실패했습니다.');
+        }
+    };
+
     const isOwner = user?.userId && request?.userId === user.userId;
+
+    const isAdmin =
+        user?.role === 'ADMIN' ||
+        user?.role === 'role_admin';
+
     const canCancel = isOwner && request?.requestStatus === 'PENDING';
-    const isReceiverLawyer = user?.userId && request?.lawyerId === user.userId;
-    const canRespond = isReceiverLawyer && request?.requestStatus === 'PENDING';
+
+    const isReceiverLawyer =
+        user?.userId && request?.lawyerId === user.userId;
+
+    const canRespond =
+        isReceiverLawyer && request?.requestStatus === 'PENDING';
+
+    const canReportRequest =
+        user?.userId && !isOwner && !isAdmin;
 
     return (
         <div className="lawyer-page">
@@ -216,8 +255,18 @@ export default function DirectRequestDetailPage({ user, onLogout }) {
                             )}
                         </div>
 
-                        {(canCancel || canRespond) && (
+                        {(canCancel || canRespond || canReportRequest) && (
                             <div className="request-detail__actions">
+                                {canReportRequest && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="md"
+                                        onClick={handleReportRequest}
+                                    >
+                                        신고
+                                    </Button>
+                                )}
                                 {canCancel && (
                                     <Button
                                         type="button"

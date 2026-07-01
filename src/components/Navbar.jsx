@@ -40,12 +40,13 @@ export default function Navbar({ user = null, onLogout }) {
   });
   const [remaining, setRemaining] = useState(null);
   const logoutRef = useRef(null);
+  const sessionExpiredHandledRef = useRef(false);
 
   // 목적: 서버 로그아웃 → localStorage 제거 → 페이지 이동
   // Input: 없음
   // Output: 없음 (사이드이펙트: 쿠키 삭제 요청, localStorage 초기화, 리다이렉트)
   const handleLogout = useCallback(async () => {
-    try { await logoutMember(); } catch (_) {}
+    try { await logoutMember(); } catch (_) { }
     localStorage.removeItem('sanaviUser');
 
     if (onLogout) {
@@ -55,6 +56,29 @@ export default function Navbar({ user = null, onLogout }) {
     }
 
     window.location.href = '/';
+  }, [onLogout, navigate]);
+
+  // 목적: 세션 만료 시 localStorage 제거 → App 로그인 상태 초기화 → 로그인 페이지 이동
+  // Input: 없음
+  // Output: 없음 (사이드이펙트: localStorage 초기화, 로그인 페이지 리다이렉트)
+  const handleSessionExpired = useCallback(() => {
+    if (sessionExpiredHandledRef.current) {
+      return;
+    }
+
+    sessionExpiredHandledRef.current = true;
+
+    localStorage.removeItem('sanaviUser');
+    setAtExpiresAt(null);
+    setRemaining(null);
+
+    if (onLogout) {
+      onLogout();
+    }
+
+    alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
+
+    navigate('/login', { replace: true });
   }, [onLogout, navigate]);
 
   // 목적: setInterval 클로저가 오래된 handleLogout 참조하는 문제 방지
@@ -78,14 +102,13 @@ export default function Navbar({ user = null, onLogout }) {
       const secs = Math.max(0, Math.floor((atExpiresAt - Date.now()) / 1000));
       setRemaining(secs);
       if (secs === 0) {
-        alert('세션이 만료되었습니다. 다시 로그인해 주세요.');
-        await logoutRef.current?.();
+        handleSessionExpired();
       }
     };
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [atExpiresAt]);
+  }, [atExpiresAt, handleSessionExpired]);
 
   // 목적: 연장 버튼 클릭 시 서버에 새 AT 발급 요청 후 만료시각 갱신
   // Input: 없음 (RT 쿠키는 브라우저가 자동 전송)
@@ -100,7 +123,7 @@ export default function Navbar({ user = null, onLogout }) {
         localStorage.setItem('sanaviUser', JSON.stringify({ ...JSON.parse(saved), atExpiresAt: next }));
       }
     } catch {
-      // refresh 실패 → http.js 401 인터셉터가 로그아웃 처리
+      handleSessionExpired();
     }
   };
 
@@ -189,7 +212,7 @@ export default function Navbar({ user = null, onLogout }) {
                 </Button>
               </Link>
 
-                  {remaining !== null && (
+              {remaining !== null && (
                 <>
                   <span className={`navbar__timer${remaining < 300 ? ' navbar__timer--warn' : ''}`}>
                     {formatRemaining(remaining)}

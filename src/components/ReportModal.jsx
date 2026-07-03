@@ -2,10 +2,20 @@
 // 카테고리가 '기타'일 때만 상세 사유 입력을 필수로 받는다
 import React, { useState } from 'react';
 import Button from './Button';
-import { reportUser, REPORT_CATEGORIES } from '../api/reportApi';
+import {
+  reportUser,
+  REPORT_CATEGORIES,
+  REPORT_TARGET_TYPES,
+} from '../api/reportApi';
 import './ReportModal.css';
 
-export default function ReportModal({ targetUserId, targetName, onClose, onSubmitted }) {
+export default function ReportModal({
+  targetUserId,
+  targetName,
+  targetType = REPORT_TARGET_TYPES.MEMBER,
+  onClose,
+  onSubmitted,
+}) {
   const [category, setCategory] = useState('');
   const [detail, setDetail] = useState('');
   const [error, setError] = useState('');
@@ -16,10 +26,16 @@ export default function ReportModal({ targetUserId, targetName, onClose, onSubmi
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!targetUserId) {
+      setError('신고 대상 정보를 확인할 수 없습니다.');
+      return;
+    }
+
     if (!category) {
       setError('신고 사유를 선택해 주세요.');
       return;
     }
+
     if (detailRequired && !detail.trim()) {
       setError('기타 사유는 상세 내용을 입력해 주세요.');
       return;
@@ -29,7 +45,13 @@ export default function ReportModal({ targetUserId, targetName, onClose, onSubmi
     setError('');
 
     try {
-      await reportUser({ reportedUserId: targetUserId, category, detail: detail.trim() });
+      await reportUser({
+        reportedUserId: targetUserId,
+        targetType,
+        category,
+        detail: detail.trim(),
+      });
+
       alert('신고가 접수되었습니다.');
       onSubmitted?.();
       onClose();
@@ -45,7 +67,14 @@ export default function ReportModal({ targetUserId, targetName, onClose, onSubmi
       <div className="report-modal" onClick={(e) => e.stopPropagation()}>
         <div className="report-modal__header">
           <h2>{targetName ? `${targetName}님 신고하기` : '신고하기'}</h2>
-          <button type="button" className="report-modal__close" onClick={onClose} aria-label="닫기">×</button>
+          <button
+            type="button"
+            className="report-modal__close"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            ×
+          </button>
         </div>
 
         <form className="report-modal__form" onSubmit={handleSubmit}>
@@ -54,11 +83,16 @@ export default function ReportModal({ targetUserId, targetName, onClose, onSubmi
             <select
               className="report-modal__select"
               value={category}
-              onChange={(e) => { setCategory(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setError('');
+              }}
             >
               <option value="">선택해 주세요</option>
               {REPORT_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
@@ -70,17 +104,39 @@ export default function ReportModal({ targetUserId, targetName, onClose, onSubmi
             <textarea
               className="field__input field__input--textarea"
               rows={4}
-              placeholder={detailRequired ? '신고 사유를 구체적으로 입력해 주세요.' : '추가로 전달할 내용이 있다면 입력해 주세요.'}
+              placeholder={
+                detailRequired
+                  ? '신고 사유를 구체적으로 입력해 주세요.'
+                  : '추가로 전달할 내용이 있다면 입력해 주세요.'
+              }
               value={detail}
-              onChange={(e) => { setDetail(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setDetail(e.target.value);
+                setError('');
+              }}
             />
           </div>
 
           {error && <p className="report-modal__error">{error}</p>}
 
           <div className="report-modal__actions">
-            <Button type="button" variant="outline" size="md" onClick={onClose}>취소</Button>
-            <Button type="submit" variant="danger-solid" size="md" loading={submitting}>신고하기</Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={onClose}
+            >
+              취소
+            </Button>
+
+            <Button
+              type="submit"
+              variant="danger-solid"
+              size="md"
+              loading={submitting}
+            >
+              신고하기
+            </Button>
           </div>
         </form>
       </div>

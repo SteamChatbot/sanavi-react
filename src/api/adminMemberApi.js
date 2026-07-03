@@ -80,11 +80,54 @@ export function resetAdminMemberAiCount(userId) {
     });
 }
 
-// Input:  userId
-// Output: ApiResponse<Void>
-// 책임:   회원 refresh token 삭제를 통한 강제 로그아웃 처리
-export function forceLogoutAdminMember(userId) {
-    return request(`/api/admin/members/${userId}/force-logout`, {
-        method: 'PATCH',
-    });
+// Input:  userIds, subscribe
+// Output: [{ userId, success, message }]
+// 책임:   선택 회원 구독 상태 일괄 변경
+export async function bulkUpdateAdminMemberSubscription(userIds, subscribe) {
+    const results = [];
+
+    for (const userId of userIds) {
+        try {
+            await updateAdminMemberSubscription(userId, subscribe);
+
+            results.push({
+                userId,
+                success: true,
+            });
+        } catch (error) {
+            results.push({
+                userId,
+                success: false,
+                message: error.message || '구독 상태 변경 실패',
+            });
+        }
+    }
+
+    return results;
+}
+
+// Input:  userIds
+// Output: [{ userId, success, message }]
+// 책임:   선택 회원 AI 사용횟수 일괄 초기화
+export async function bulkResetAdminMemberAiCount(userIds) {
+    const results = [];
+
+    for (const userId of userIds) {
+        try {
+            await resetAdminMemberAiCount(userId);
+
+            results.push({
+                userId,
+                success: true,
+            });
+        } catch (error) {
+            results.push({
+                userId,
+                success: false,
+                message: error.message || 'AI 횟수 초기화 실패',
+            });
+        }
+    }
+
+    return results;
 }

@@ -75,6 +75,16 @@ const MENU = [
       </>
     ),
   },
+  {
+    to: '/admin/mail',
+    label: '메일발송',
+    icon: (
+      <>
+        <rect x="3.5" y="5" width="17" height="14" rx="2" />
+        <path d="M4 7l8 6 8-6" />
+      </>
+    ),
+  },
 ];
 
 export default function AdminLayout({ title, description, user, onLogout, children }) {

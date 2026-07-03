@@ -38,6 +38,9 @@
   border-bottom: 1px solid var(--color-gray-100);
 }
 .ad-section__title { font-size: 14px; font-weight: 800; color: var(--color-navy); }
+/* 섹션 헤더 우측에 범례를 둘 때(예: 일별 로그 추이) — ad-bar-chart__dot(색상 점)과 같이 씀 */
+.ad-section__legend { display: flex; gap: 14px; font-size: 11px; color: var(--color-gray-500); flex-shrink: 0; }
+.ad-section__legend span { display: inline-flex; align-items: center; gap: 5px; }
 .ad-section__desc { margin-top: 2px; font-size: 11px; color: var(--color-gray-400); }
 .ad-section__body { padding: 18px 20px; }
 
@@ -148,6 +151,9 @@
 .ad-bar-chart__bars { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
 .ad-bar-chart__bar { width: 10px; border-radius: 3px 3px 0 0; background: var(--color-primary); }
 .ad-bar-chart__bar--secondary { background: var(--color-danger-border); }
+.ad-bar-chart__bar--danger  { background: var(--color-danger); }
+.ad-bar-chart__bar--warn    { background: var(--color-warning); }
+.ad-bar-chart__bar--success { background: var(--color-success); }
 .ad-bar-chart__label { font-size: 10px; color: var(--color-gray-400); }
 .ad-bar-chart__legend { display: flex; gap: 16px; padding: 10px 20px 16px; font-size: 11px; color: var(--color-gray-500); }
 .ad-bar-chart__legend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -224,6 +230,17 @@
 }
 .ad-perm-badge__remove:hover { background: var(--color-danger); }
 
+/* 통계 — 랭킹 리스트 (질병/직업 TOP, 변호사 지역/전문분야 분포 공용) */
+.ad-ranking-list { display: flex; flex-direction: column; gap: 8px; }
+.ad-ranking-row { display: flex; align-items: center; gap: 10px; }
+.ad-ranking-rank {
+  flex-shrink: 0; width: 20px; text-align: center;
+  font-size: 12px; font-weight: 800; color: var(--color-gray-400);
+}
+.ad-ranking-label { flex-shrink: 0; width: 110px; font-size: 13px; font-weight: 600; color: var(--color-navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-ranking-bar-track { flex: 1; height: 8px; border-radius: 99px; background: var(--color-gray-100); overflow: hidden; }
+.ad-ranking-bar-fill { height: 100%; border-radius: 99px; background: var(--color-primary); }
+.ad-ranking-count { flex-shrink: 0; width: 48px; text-align: right; font-size: 12px; font-weight: 700; color: var(--color-gray-500); }
 /* 관리자 처리 모달 */
 .ad-modal__overlay {
   position: fixed;

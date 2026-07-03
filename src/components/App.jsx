@@ -32,6 +32,7 @@ import AdminMatchBoardPage  from '../pages/admin/AdminMatchBoardPage';
 import AdminMemberRolePage  from '../pages/admin/AdminMemberRolePage';
 import AdminMemberReportPage from '../pages/admin/AdminMemberReportPage';
 import AdminSystemPage      from '../pages/admin/AdminSystemPage';
+import AdminMailPage        from '../pages/admin/AdminMailPage';
 
 // 새로고침 후에도 로그인 상태 유지 — localStorage에서 user 복원
 // JSON 파싱 실패(손상된 데이터) 시 자동 초기화
@@ -115,6 +116,7 @@ export default function App() {
         <Route path="/admin/board"       element={<AdminBoardPage      user={user} onLogout={handleLogout} />} />
         <Route path="/admin/board/match" element={<AdminMatchBoardPage user={user} onLogout={handleLogout} />} />
         <Route path="/admin/system"      element={<AdminSystemPage     user={user} onLogout={handleLogout} />} />
+        <Route path="/admin/mail"        element={<AdminMailPage       user={user} onLogout={handleLogout} />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

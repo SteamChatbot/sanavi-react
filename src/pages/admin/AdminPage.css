@@ -134,14 +134,33 @@
 .ad-empty { padding: 48px; text-align: center; font-size: 13px; color: var(--color-gray-400); }
 
 /* 컬럼 구성 — 페이지별 */
-.ad-table--members  .ad-table__head, .ad-table--members  .ad-table__row { grid-template-columns: 100px 90px 1.1fr 1.3fr 90px 90px 90px 1.4fr; }
+.ad-table--members .ad-table__head,
+.ad-table--members .ad-table__row {
+  grid-template-columns: 42px 100px 90px 1.1fr 1.3fr 90px 90px 90px 1.2fr;
+}
 .ad-table--analysis .ad-table__head, .ad-table--analysis .ad-table__row { grid-template-columns: 90px 110px 1fr 100px 90px 130px 1.2fr; }
 .ad-table--board    .ad-table__head, .ad-table--board    .ad-table__row { grid-template-columns: 70px 1.6fr 110px 110px 80px 80px 110px; }
 .ad-table--matchboard .ad-table__head, .ad-table--matchboard .ad-table__row { grid-template-columns: 1.6fr 100px 90px 80px 80px 100px 150px; }
 .ad-table--comments .ad-table__head, .ad-table--comments .ad-table__row { grid-template-columns: 70px 1.2fr 100px 1.6fr 80px 100px 90px; }
 .ad-table--reports  .ad-table__head, .ad-table--reports  .ad-table__row { grid-template-columns: 1fr 100px 1.3fr 130px 120px 220px; }
 .ad-table--logs     .ad-table__head, .ad-table--logs     .ad-table__row { grid-template-columns: 140px 90px 1fr 140px; }
+.ad-table__checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.ad-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.ad-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
 /* 페이지네이션 여백 */
 .ad-pagination-wrap { padding: 16px 20px; display: flex; justify-content: center; }
 

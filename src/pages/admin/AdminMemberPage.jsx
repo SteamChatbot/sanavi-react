@@ -13,7 +13,8 @@ import {
   getAdminMembers,
   updateAdminMemberSubscription,
   resetAdminMemberAiCount,
-  forceLogoutAdminMember,
+  bulkUpdateAdminMemberSubscription,
+  bulkResetAdminMemberAiCount,
 } from '../../api/adminMemberApi';
 
 import './AdminPage.css';
@@ -137,6 +138,9 @@ export default function AdminMemberPage({ user, onLogout }) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const [actionLoadingUserId, setActionLoadingUserId] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -223,6 +227,40 @@ export default function AdminMemberPage({ user, onLogout }) {
     }
   };
 
+  const selectableMembers = members.filter(
+    (member) => member.status !== ADMIN_MEMBER_STATUS.WITHDRAWN
+  );
+
+  const selectableUserIds = selectableMembers.map((member) => member.userId);
+
+  const allVisibleSelected =
+    selectableUserIds.length > 0 &&
+    selectableUserIds.every((userId) => selectedUserIds.includes(userId));
+
+  const handleToggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelectedUserIds((prev) =>
+        prev.filter((userId) => !selectableUserIds.includes(userId))
+      );
+      return;
+    }
+
+    setSelectedUserIds((prev) => {
+      const merged = new Set([...prev, ...selectableUserIds]);
+      return Array.from(merged);
+    });
+  };
+
+  const handleToggleSelectUser = (userId) => {
+    setSelectedUserIds((prev) => {
+      if (prev.includes(userId)) {
+        return prev.filter((id) => id !== userId);
+      }
+
+      return [...prev, userId];
+    });
+  };
+
   const handleResetAiCount = async (member) => {
     if (member.status === ADMIN_MEMBER_STATUS.WITHDRAWN) {
       alert('강제탈퇴 처리된 회원은 AI 횟수를 초기화할 수 없습니다.');
@@ -246,26 +284,75 @@ export default function AdminMemberPage({ user, onLogout }) {
     }
   };
 
-  const handleForceLogout = async (member) => {
-    if (member.userId === user?.userId) {
-      alert('본인 계정은 강제 로그아웃 처리할 수 없습니다.');
+  const handleBulkAction = async () => {
+    if (selectedUserIds.length === 0) {
+      alert('선택된 회원이 없습니다.');
       return;
     }
 
-    if (!window.confirm(`${member.name} 회원을 강제 로그아웃 처리하시겠습니까?`)) {
+    if (!bulkAction) {
+      alert('일괄 작업을 선택해 주세요.');
       return;
     }
 
-    setActionLoadingUserId(member.userId);
+    const selectedMembers = members.filter((member) =>
+      selectedUserIds.includes(member.userId)
+    );
+
+    const withdrawnMembers = selectedMembers.filter(
+      (member) => member.status === ADMIN_MEMBER_STATUS.WITHDRAWN
+    );
+
+    if (withdrawnMembers.length > 0) {
+      alert('강제탈퇴 처리된 회원은 일괄 작업 대상에서 제외해 주세요.');
+      return;
+    }
+
+    const actionLabel =
+      bulkAction === 'SUBSCRIBE_PRO'
+        ? 'Pro 전환'
+        : bulkAction === 'SUBSCRIBE_BASIC'
+          ? 'Basic 전환'
+          : 'AI 횟수 초기화';
+
+    if (!window.confirm(`선택한 ${selectedUserIds.length}명에게 "${actionLabel}" 작업을 적용하시겠습니까?`)) {
+      return;
+    }
+
+    setBulkProcessing(true);
 
     try {
-      await forceLogoutAdminMember(member.userId);
-      alert('강제 로그아웃 처리되었습니다.');
+      let results = [];
+
+      if (bulkAction === 'SUBSCRIBE_PRO') {
+        results = await bulkUpdateAdminMemberSubscription(selectedUserIds, 1);
+      }
+
+      if (bulkAction === 'SUBSCRIBE_BASIC') {
+        results = await bulkUpdateAdminMemberSubscription(selectedUserIds, 0);
+      }
+
+      if (bulkAction === 'RESET_AI_COUNT') {
+        results = await bulkResetAdminMemberAiCount(selectedUserIds);
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.length - successCount;
+
+      if (failCount > 0) {
+        alert(`일괄 작업 완료: 성공 ${successCount}건, 실패 ${failCount}건`);
+      } else {
+        alert(`일괄 작업 완료: 성공 ${successCount}건`);
+      }
+
+      setSelectedUserIds([]);
+      setBulkAction('');
+
       await fetchMembers();
     } catch (error) {
-      alert(error.message || '강제 로그아웃 처리에 실패했습니다.');
+      alert(error.message || '일괄 작업에 실패했습니다.');
     } finally {
-      setActionLoadingUserId('');
+      setBulkProcessing(false);
     }
   };
 
@@ -347,6 +434,30 @@ export default function AdminMemberPage({ user, onLogout }) {
             초기화
           </Button>
 
+          <select
+            className="ad-select"
+            value={bulkAction}
+            onChange={(e) => setBulkAction(e.target.value)}
+          >
+            <option value="">일괄 작업 선택</option>
+            <option value="SUBSCRIBE_PRO">선택 회원 Pro 전환</option>
+            <option value="SUBSCRIBE_BASIC">선택 회원 Basic 전환</option>
+            <option value="RESET_AI_COUNT">선택 회원 AI횟수 초기화</option>
+          </select>
+
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={bulkProcessing || selectedUserIds.length === 0}
+            onClick={handleBulkAction}
+          >
+            {bulkProcessing ? '처리 중' : '일괄 적용'}
+          </Button>
+
+          <span className="ad-toolbar__count">
+            선택 {selectedUserIds.length}명
+          </span>
+
           <span className="ad-toolbar__spacer ad-toolbar__count">
             총 {totalCount}명
           </span>
@@ -354,6 +465,14 @@ export default function AdminMemberPage({ user, onLogout }) {
 
         <div className="ad-table ad-table--members">
           <div className="ad-table__head">
+            <span className="ad-table__checkbox">
+              <input
+                type="checkbox"
+                className="ad-checkbox"
+                checked={allVisibleSelected}
+                onChange={handleToggleSelectAllVisible}
+              />
+            </span>
             <span>아이디</span>
             <span>구분</span>
             <span>이름</span>
@@ -389,6 +508,16 @@ export default function AdminMemberPage({ user, onLogout }) {
 
             return (
               <div className="ad-table__row" key={member.userId}>
+                <div className="ad-table__checkbox">
+                  <input
+                    type="checkbox"
+                    className="ad-checkbox"
+                    checked={selectedUserIds.includes(member.userId)}
+                    disabled={member.status === ADMIN_MEMBER_STATUS.WITHDRAWN}
+                    onChange={() => handleToggleSelectUser(member.userId)}
+                  />
+                </div>
+
                 <div>
                   <div className="ad-table__cell-strong">
                     {member.userId}
@@ -460,14 +589,6 @@ export default function AdminMemberPage({ user, onLogout }) {
                     AI횟수 초기화
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    disabled={isActionLoading || member.userId === user?.userId}
-                    onClick={() => handleForceLogout(member)}
-                  >
-                    강제 로그아웃
-                  </Button>
                 </div>
               </div>
             );

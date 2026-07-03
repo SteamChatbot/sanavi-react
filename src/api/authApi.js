@@ -13,7 +13,9 @@ export function checkUserId(userId) {
     userId,
   });
 
-  return request(`/api/members/check-id?${params.toString()}`);
+  return request(`/api/members/check-id?${params.toString()}`, {
+    skipAuthRefresh: true,
+  });
 }
 
 /**
@@ -27,6 +29,7 @@ export function sendEmailCode(email) {
     body: JSON.stringify({
       email,
     }),
+    skipAuthRefresh: true,
   });
 }
 
@@ -42,6 +45,7 @@ export function verifyEmailCode(email, code) {
       email,
       code,
     }),
+    skipAuthRefresh: true,
   });
 }
 
@@ -54,6 +58,7 @@ export function signupMember(payload) {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(payload),
+    skipAuthRefresh: true,
   });
 }
 
@@ -69,6 +74,7 @@ export function loginMember(payload) {
       userId: payload.userId,
       password: payload.password,
     }),
+    skipAuthRefresh: true,
   });
 }
 
@@ -89,5 +95,8 @@ export async function refreshToken() {
     method: 'POST',
     credentials: 'include',
   });
-  if (!res.ok) throw new Error('토큰 갱신 실패');
+
+  if (!res.ok) {
+    throw new Error('토큰 갱신 실패');
+  }
 }

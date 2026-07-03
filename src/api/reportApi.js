@@ -20,14 +20,36 @@ export const REPORT_TARGET_TYPES = {
   MATCH: 'MATCH',
 };
 
-// Input:  { reportedUserId, category, detail }
+// Input:  { reportedUserId, targetType, category, detail }
 // Output: ApiResponse<Void>
-// 책임:   회원 신고 접수 (reporterId는 서버가 JWT userId로 설정)
-export function reportUser({ reportedUserId, category, detail }) {
+// 책임:   회원/변호사 신고 접수
+//         reporterId는 서버가 JWT userId로 설정
+export function reportUser({
+  reportedUserId,
+  targetType = REPORT_TARGET_TYPES.MEMBER,
+  category,
+  detail,
+}) {
   return request('/api/reports', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reportedUserId, category, detail }),
+    body: JSON.stringify({
+      reportedUserId,
+      targetType,
+      targetId: reportedUserId,
+      category,
+      detail,
+    }),
+  });
+}
+
+// 변호사 신고
+export function reportLawyer({ lawyerUserId, category, detail }) {
+  return reportUser({
+    reportedUserId: lawyerUserId,
+    targetType: REPORT_TARGET_TYPES.LAWYER,
+    category,
+    detail,
   });
 }
 

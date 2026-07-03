@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
+import ReportModal from '../components/ReportModal';
 import { getLawyerDetail } from '../api/requestListApi';
+import { REPORT_TARGET_TYPES } from '../api/reportApi';
 
 import './LawyerPage.css';
 
@@ -14,6 +16,7 @@ export default function LawyerDetailPage({ user, onLogout }) {
   const [lawyer, setLawyer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     const fetchLawyer = async () => {
@@ -30,6 +33,10 @@ export default function LawyerDetailPage({ user, onLogout }) {
     fetchLawyer();
   }, [lawyerId]);
 
+  const getTargetUserId = () => {
+    return lawyer?.userId ?? lawyer?.lawyerId ?? lawyerId;
+  };
+
   const handleRequestClick = () => {
     if (!user?.userId) {
       alert('로그인이 필요합니다.');
@@ -38,6 +45,28 @@ export default function LawyerDetailPage({ user, onLogout }) {
     }
 
     navigate(`/lawyers/${lawyerId}/request`);
+  };
+
+  const handleReportClick = () => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    const targetUserId = getTargetUserId();
+
+    if (!targetUserId) {
+      alert('신고 대상 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (targetUserId === user.userId) {
+      alert('본인은 신고할 수 없습니다.');
+      return;
+    }
+
+    setReportOpen(true);
   };
 
   return (
@@ -90,11 +119,32 @@ export default function LawyerDetailPage({ user, onLogout }) {
             </div>
 
             <div className="lawyer-detail__actions">
-              <Button variant="primary" size="md" onClick={handleRequestClick}>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={handleReportClick}
+              >
+                변호사 신고
+              </Button>
+
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleRequestClick}
+              >
                 이 변호사에게 의뢰하기
               </Button>
             </div>
           </section>
+        )}
+
+        {reportOpen && lawyer && (
+          <ReportModal
+            targetUserId={getTargetUserId()}
+            targetName={lawyer.lawyerName}
+            targetType={REPORT_TARGET_TYPES.LAWYER}
+            onClose={() => setReportOpen(false)}
+          />
         )}
       </main>
     </div>

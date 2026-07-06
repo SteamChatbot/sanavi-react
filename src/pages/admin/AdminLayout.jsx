@@ -1,16 +1,21 @@
 // 관리자 페이지 공통 셸 — 왼쪽 사이드바 메뉴 + 상단 페이지 타이틀/설명 헤더
-// 책임: 사이드바 네비게이션, 현재 경로 active 표시, 상단 헤더(title/description) 렌더
+// 책임: 사이드바 네비게이션, 현재 경로 active 표시, 권한별 메뉴 노출, 상단 헤더 렌더
 //       각 Admin*Page는 이 레이아웃으로 감싸서 본문(children)만 채우면 됨
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+
 import Avatar from '../../components/Avatar';
 import Button from '../../components/Button';
+import { ADMIN_PERMISSION_CODES } from '../../api/adminRoleApi';
+import { useAdminPermissions } from '../../contexts/AdminPermissionContext';
+
 import './AdminLayout.css';
 
 const MENU = [
   {
     to: '/admin',
     label: '홈',
+    permission: ADMIN_PERMISSION_CODES.STATISTICS_READ,
     icon: (
       <path d="M3 11l9-8 9 8M5 10v10h14V10" />
     ),
@@ -25,14 +30,27 @@ const MENU = [
       </>
     ),
     children: [
-      { to: '/admin/members', label: '회원상태관리' },
-      { to: '/admin/members/reports', label: '신고관리' },
-      { to: '/admin/members/roles', label: '권한관리' },
+      {
+        to: '/admin/members',
+        label: '회원상태관리',
+        permission: ADMIN_PERMISSION_CODES.MEMBER_READ,
+      },
+      {
+        to: '/admin/members/reports',
+        label: '신고관리',
+        permission: ADMIN_PERMISSION_CODES.REPORT_READ,
+      },
+      {
+        to: '/admin/members/roles',
+        label: '권한관리',
+        permission: ADMIN_PERMISSION_CODES.ADMIN_ROLE_MANAGE,
+      },
     ],
   },
   {
     to: '/admin/statistics',
     label: '통계',
+    permission: ADMIN_PERMISSION_CODES.STATISTICS_READ,
     icon: (
       <>
         <path d="M4 20V10M11 20V4M18 20v-7" />
@@ -43,6 +61,7 @@ const MENU = [
   {
     to: '/admin/analysis',
     label: 'AI 분석관리',
+    permission: ADMIN_PERMISSION_CODES.AI_ANALYSIS_MANAGE,
     icon: (
       <>
         <circle cx="11" cy="11" r="7" />
@@ -60,13 +79,22 @@ const MENU = [
       </>
     ),
     children: [
-      { to: '/admin/board', label: '게시판관리' },
-      { to: '/admin/board/match', label: '의뢰글게시판관리' },
+      {
+        to: '/admin/board',
+        label: '게시판관리',
+        permission: ADMIN_PERMISSION_CODES.BOARD_MANAGE,
+      },
+      {
+        to: '/admin/board/match',
+        label: '의뢰글게시판관리',
+        permission: ADMIN_PERMISSION_CODES.MATCH_BOARD_MANAGE,
+      },
     ],
   },
   {
     to: '/admin/system',
     label: '시스템 모니터링',
+    permission: ADMIN_PERMISSION_CODES.SYSTEM_MONITOR,
     icon: (
       <>
         <rect x="4" y="4" width="16" height="11" rx="1.5" />
@@ -77,7 +105,8 @@ const MENU = [
   },
   {
     to: '/admin/mail',
-    label: '메일발송',
+    label: '메일관리',
+    permission: ADMIN_PERMISSION_CODES.MAIL_SEND,
     icon: (
       <>
         <rect x="3.5" y="5" width="17" height="14" rx="2" />
@@ -87,24 +116,66 @@ const MENU = [
   },
 ];
 
-export default function AdminLayout({ title, description, user, onLogout, children }) {
+export default function AdminLayout({
+  title,
+  description,
+  user,
+  onLogout,
+  children,
+}) {
   const { pathname } = useLocation();
+  const { hasPermission } = useAdminPermissions();
+
   const isActive = (to) =>
-    to === '/admin' ? pathname === '/admin' : pathname === to || pathname.startsWith(`${to}/`);
-  // 하위메뉴 항목은 항상 정확히 일치할 때만 active — /admin/members가 /admin/members/reports까지 매칭되는 것 방지
+    to === '/admin'
+      ? pathname === '/admin'
+      : pathname === to || pathname.startsWith(`${to}/`);
+
+  // 하위메뉴 항목은 항상 정확히 일치할 때만 active
+  // /admin/members가 /admin/members/reports까지 매칭되는 것 방지
   const isSubActive = (to) => pathname === to;
-  const hasActiveChild = (item) => item.children?.some((c) => isSubActive(c.to));
+
+  const filteredMenu = useMemo(() => {
+    return MENU.map((item) => {
+      if (!item.children) {
+        return hasPermission(item.permission) ? item : null;
+      }
+
+      const children = item.children.filter((child) =>
+        hasPermission(child.permission)
+      );
+
+      if (children.length === 0) {
+        return null;
+      }
+
+      return {
+        ...item,
+        children,
+      };
+    }).filter(Boolean);
+  }, [hasPermission]);
+
+  const hasActiveChild = (item) =>
+    item.children?.some((child) => isSubActive(child.to));
 
   const [openGroups, setOpenGroups] = useState(() => {
     const init = {};
+
     MENU.forEach((item) => {
-      if (item.children && hasActiveChild(item)) init[item.label] = true;
+      if (item.children && item.children.some((child) => pathname === child.to)) {
+        init[item.label] = true;
+      }
     });
+
     return init;
   });
 
   const toggleGroup = (label) => {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+    setOpenGroups((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
   };
 
   const displayName = user?.name || user?.userId || '관리자';
@@ -115,10 +186,13 @@ export default function AdminLayout({ title, description, user, onLogout, childr
         <Link to="/" className="admin-sidebar__logo">
           산내비 <span>AI</span>
         </Link>
-        <div className="admin-sidebar__tag">관리자 모드</div>
+
+        <div className="admin-sidebar__tag">
+          관리자 모드
+        </div>
 
         <nav className="admin-sidebar__nav">
-          {MENU.map((item) =>
+          {filteredMenu.map((item) =>
             item.children ? (
               <div className="admin-sidebar__group" key={item.label}>
                 <button
@@ -126,17 +200,43 @@ export default function AdminLayout({ title, description, user, onLogout, childr
                   className={[
                     'admin-sidebar__link',
                     'admin-sidebar__link--toggle',
-                    hasActiveChild(item) ? 'admin-sidebar__link--group-active' : '',
+                    hasActiveChild(item)
+                      ? 'admin-sidebar__link--group-active'
+                      : '',
                   ].filter(Boolean).join(' ')}
                   onClick={() => toggleGroup(item.label)}
                 >
-                  <svg className="admin-sidebar__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    className="admin-sidebar__icon"
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     {item.icon}
                   </svg>
+
                   {item.label}
+
                   <svg
-                    className={['admin-sidebar__chevron', openGroups[item.label] ? 'admin-sidebar__chevron--open' : ''].filter(Boolean).join(' ')}
-                    width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className={[
+                      'admin-sidebar__chevron',
+                      openGroups[item.label]
+                        ? 'admin-sidebar__chevron--open'
+                        : '',
+                    ].filter(Boolean).join(' ')}
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
                     <path d="M9 6l6 6-6 6" />
                   </svg>
@@ -150,7 +250,9 @@ export default function AdminLayout({ title, description, user, onLogout, childr
                         to={child.to}
                         className={[
                           'admin-sidebar__sublink',
-                          isSubActive(child.to) ? 'admin-sidebar__sublink--active' : '',
+                          isSubActive(child.to)
+                            ? 'admin-sidebar__sublink--active'
+                            : '',
                         ].filter(Boolean).join(' ')}
                       >
                         {child.label}
@@ -168,9 +270,20 @@ export default function AdminLayout({ title, description, user, onLogout, childr
                   isActive(item.to) ? 'admin-sidebar__link--active' : '',
                 ].filter(Boolean).join(' ')}
               >
-                <svg className="admin-sidebar__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  className="admin-sidebar__icon"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   {item.icon}
                 </svg>
+
                 {item.label}
               </Link>
             )
@@ -185,14 +298,26 @@ export default function AdminLayout({ title, description, user, onLogout, childr
       <div className="admin-main">
         <header className="admin-topbar">
           <div className="admin-topbar__heading">
-            <h1 className="admin-topbar__title">{title}</h1>
-            {description && <p className="admin-topbar__desc">{description}</p>}
+            <h1 className="admin-topbar__title">
+              {title}
+            </h1>
+
+            {description && (
+              <p className="admin-topbar__desc">
+                {description}
+              </p>
+            )}
           </div>
 
           <div className="admin-topbar__user">
             <Avatar name={displayName} size="sm" color="admin" />
-            <span className="admin-topbar__username">{displayName}</span>
-            <Button variant="outline" size="sm" onClick={onLogout}>로그아웃</Button>
+            <span className="admin-topbar__username">
+              {displayName}
+            </span>
+
+            <Button variant="outline" size="sm" onClick={onLogout}>
+              로그아웃
+            </Button>
           </div>
         </header>
 

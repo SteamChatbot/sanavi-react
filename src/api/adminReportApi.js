@@ -94,3 +94,88 @@ export function dismissAdminReport(reportId, { reason }) {
         }),
     });
 }
+
+// Input:  reportIds, { days, reason }
+// Output: [{ reportId, success, message }]
+// 책임:   선택 신고 로그인 제한 일괄 처리
+export async function bulkRestrictReportLogin(reportIds, { days, reason }) {
+    const results = [];
+
+    for (const reportId of reportIds) {
+        try {
+            await restrictReportLogin(reportId, {
+                days,
+                reason,
+            });
+
+            results.push({
+                reportId,
+                success: true,
+            });
+        } catch (error) {
+            results.push({
+                reportId,
+                success: false,
+                message: error.message || '로그인 제한 처리 실패',
+            });
+        }
+    }
+
+    return results;
+}
+
+// Input:  reportIds, { reason }
+// Output: [{ reportId, success, message }]
+// 책임:   선택 신고 강제탈퇴 일괄 처리
+export async function bulkWithdrawReportedUsers(reportIds, { reason }) {
+    const results = [];
+
+    for (const reportId of reportIds) {
+        try {
+            await withdrawReportedUser(reportId, {
+                reason,
+            });
+
+            results.push({
+                reportId,
+                success: true,
+            });
+        } catch (error) {
+            results.push({
+                reportId,
+                success: false,
+                message: error.message || '강제탈퇴 처리 실패',
+            });
+        }
+    }
+
+    return results;
+}
+
+// Input:  reportIds, { reason }
+// Output: [{ reportId, success, message }]
+// 책임:   선택 신고 반려 일괄 처리
+export async function bulkDismissAdminReports(reportIds, { reason }) {
+    const results = [];
+
+    for (const reportId of reportIds) {
+        try {
+            await dismissAdminReport(reportId, {
+                reason,
+            });
+
+            results.push({
+                reportId,
+                success: true,
+            });
+        } catch (error) {
+            results.push({
+                reportId,
+                success: false,
+                message: error.message || '반려 처리 실패',
+            });
+        }
+    }
+
+    return results;
+}

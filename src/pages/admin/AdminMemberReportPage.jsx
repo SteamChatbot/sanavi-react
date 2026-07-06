@@ -1,11 +1,14 @@
 // 신고관리 — 회원 신고 내역 조회, 로그인 제한·강제탈퇴·반려 처리
-// 회원상태관리는 조회/구독/AI횟수 위주로 가볍게 유지하고, 제재성 조치는 이 페이지에 모아둔다
+// PENDING 신고만 선택 가능하며, 선택 신고에 대해 일괄 처리를 지원한다
 import React, { useCallback, useEffect, useState } from 'react';
 
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
 import AdminLayout from './AdminLayout';
+
+import { useAdminPermissions } from '../../contexts/AdminPermissionContext';
+import { ADMIN_PERMISSION_CODES } from '../../api/adminRoleApi';
 
 import {
   ADMIN_REPORT_STATUS,
@@ -14,6 +17,9 @@ import {
   restrictReportLogin,
   withdrawReportedUser,
   dismissAdminReport,
+  bulkRestrictReportLogin,
+  bulkWithdrawReportedUsers,
+  bulkDismissAdminReports,
 } from '../../api/adminReportApi';
 
 import './AdminPage.css';
@@ -62,6 +68,15 @@ const TARGET_TYPE_OPTIONS = [
   { value: ADMIN_REPORT_TARGET_TYPES.MATCH, label: '의뢰글' },
 ];
 
+const BULK_ACTION_OPTIONS = [
+  { value: '', label: '일괄 작업 선택' },
+  { value: 'LOGIN_RESTRICT_3', label: '선택 신고 3일 로그인 제한' },
+  { value: 'LOGIN_RESTRICT_7', label: '선택 신고 7일 로그인 제한' },
+  { value: 'LOGIN_RESTRICT_30', label: '선택 신고 30일 로그인 제한' },
+  { value: 'WITHDRAW', label: '선택 신고 강제탈퇴' },
+  { value: 'DISMISS', label: '선택 신고 반려' },
+];
+
 const PAGE_SIZE = 10;
 
 function formatDateTime(value) {
@@ -87,7 +102,21 @@ function getTargetName(report) {
   return report.reportedUserName || report.reportedUserId || '-';
 }
 
+function isLoginRestrictBulkAction(value) {
+  return value?.startsWith('LOGIN_RESTRICT_');
+}
+
+function getBulkActionLabel(value) {
+  const option = BULK_ACTION_OPTIONS.find((o) => o.value === value);
+  return option?.label || '일괄 작업';
+}
+
 export default function AdminMemberReportPage({ user, onLogout }) {
+  const { hasPermission } = useAdminPermissions();
+
+  const canProcessReport = hasPermission(
+    ADMIN_PERMISSION_CODES.REPORT_PROCESS
+  );
   const [filters, setFilters] = useState({
     status: '',
     targetType: '',
@@ -107,6 +136,9 @@ export default function AdminMemberReportPage({ user, onLogout }) {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const [selectedReportIds, setSelectedReportIds] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
 
   const [processModal, setProcessModal] = useState(null);
   const [processDays, setProcessDays] = useState(7);
@@ -141,6 +173,16 @@ export default function AdminMemberReportPage({ user, onLogout }) {
     fetchReports();
   }, [fetchReports]);
 
+  const pendingReports = reports.filter(
+    (report) => report.status === ADMIN_REPORT_STATUS.PENDING
+  );
+
+  const pendingReportIds = pendingReports.map((report) => report.reportId);
+
+  const allVisiblePendingSelected =
+    pendingReportIds.length > 0 &&
+    pendingReportIds.every((reportId) => selectedReportIds.includes(reportId));
+
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -150,6 +192,8 @@ export default function AdminMemberReportPage({ user, onLogout }) {
 
   const handleSearch = () => {
     setPage(1);
+    setSelectedReportIds([]);
+    setBulkAction('');
     setQuery({
       status: filters.status,
       targetType: filters.targetType,
@@ -167,12 +211,100 @@ export default function AdminMemberReportPage({ user, onLogout }) {
     setFilters(empty);
     setQuery(empty);
     setPage(1);
+    setSelectedReportIds([]);
+    setBulkAction('');
+  };
+
+  const handlePageChange = (nextPage) => {
+    setSelectedReportIds([]);
+    setBulkAction('');
+    setPage(nextPage);
+  };
+
+  const handleToggleSelectAllVisible = () => {
+    if (allVisiblePendingSelected) {
+      setSelectedReportIds((prev) =>
+        prev.filter((reportId) => !pendingReportIds.includes(reportId))
+      );
+      return;
+    }
+
+    setSelectedReportIds((prev) => {
+      const merged = new Set([...prev, ...pendingReportIds]);
+      return Array.from(merged);
+    });
+  };
+
+  const handleToggleSelectReport = (report) => {
+    if (report.status !== ADMIN_REPORT_STATUS.PENDING) {
+      return;
+    }
+
+    setSelectedReportIds((prev) => {
+      if (prev.includes(report.reportId)) {
+        return prev.filter((id) => id !== report.reportId);
+      }
+
+      return [...prev, report.reportId];
+    });
   };
 
   const openProcessModal = (mode, report) => {
     setProcessModal({
       mode,
       report,
+      reports: [],
+      isBulk: false,
+    });
+
+    setProcessDays(7);
+    setProcessReason('');
+  };
+
+  const openBulkProcessModal = () => {
+    if (selectedReportIds.length === 0) {
+      alert('선택된 신고가 없습니다.');
+      return;
+    }
+
+    if (!bulkAction) {
+      alert('일괄 작업을 선택해 주세요.');
+      return;
+    }
+
+    const selectedReports = reports.filter((report) =>
+      selectedReportIds.includes(report.reportId)
+    );
+
+    const invalidReports = selectedReports.filter(
+      (report) => report.status !== ADMIN_REPORT_STATUS.PENDING
+    );
+
+    if (invalidReports.length > 0) {
+      alert('처리대기 상태의 신고만 일괄 처리할 수 있습니다.');
+      return;
+    }
+
+    if (isLoginRestrictBulkAction(bulkAction)) {
+      const days = Number(bulkAction.replace('LOGIN_RESTRICT_', ''));
+
+      setProcessModal({
+        mode: 'loginRestrict',
+        report: null,
+        reports: selectedReports,
+        isBulk: true,
+      });
+
+      setProcessDays(days);
+      setProcessReason('');
+      return;
+    }
+
+    setProcessModal({
+      mode: bulkAction === 'WITHDRAW' ? 'withdraw' : 'dismiss',
+      report: null,
+      reports: selectedReports,
+      isBulk: true,
     });
 
     setProcessDays(7);
@@ -194,21 +326,124 @@ export default function AdminMemberReportPage({ user, onLogout }) {
       return '';
     }
 
+    const prefix = processModal.isBulk ? '일괄 ' : '';
+
     if (processModal.mode === 'loginRestrict') {
-      return '로그인 제한 처리';
+      return `${prefix}로그인 제한 처리`;
     }
 
     if (processModal.mode === 'withdraw') {
-      return '강제탈퇴 처리';
+      return `${prefix}강제탈퇴 처리`;
     }
 
-    return '신고 반려 처리';
+    return `${prefix}신고 반려 처리`;
+  };
+
+  const getProcessTargetText = () => {
+    if (!processModal) {
+      return '';
+    }
+
+    if (processModal.isBulk) {
+      return `선택 신고 ${processModal.reports.length}건`;
+    }
+
+    return `${getTargetName(processModal.report)} @${processModal.report.reportedUserId}`;
+  };
+
+  const submitSingleProcess = async (reason) => {
+    const { mode, report } = processModal;
+
+    const targetName = getTargetName(report);
+    const confirmMessage =
+      mode === 'loginRestrict'
+        ? `${targetName}(${report.reportedUserId}) 회원을 ${processDays}일 로그인 제한 처리하시겠습니까?`
+        : mode === 'withdraw'
+          ? `${targetName}(${report.reportedUserId}) 회원을 강제탈퇴 처리하시겠습니까?`
+          : '해당 신고를 반려 처리하시겠습니까?';
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    if (mode === 'loginRestrict') {
+      await restrictReportLogin(report.reportId, {
+        days: Number(processDays),
+        reason,
+      });
+
+      alert('로그인 제한 처리가 완료되었습니다.');
+    }
+
+    if (mode === 'withdraw') {
+      await withdrawReportedUser(report.reportId, {
+        reason,
+      });
+
+      alert('강제탈퇴 처리가 완료되었습니다.');
+    }
+
+    if (mode === 'dismiss') {
+      await dismissAdminReport(report.reportId, {
+        reason,
+      });
+
+      alert('신고가 반려 처리되었습니다.');
+    }
+  };
+
+  const submitBulkProcess = async (reason) => {
+    const reportIds = processModal.reports.map((report) => report.reportId);
+
+    const confirmMessage =
+      processModal.mode === 'loginRestrict'
+        ? `선택 신고 ${reportIds.length}건을 ${processDays}일 로그인 제한 처리하시겠습니까?`
+        : processModal.mode === 'withdraw'
+          ? `선택 신고 ${reportIds.length}건을 강제탈퇴 처리하시겠습니까?`
+          : `선택 신고 ${reportIds.length}건을 반려 처리하시겠습니까?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    let results = [];
+
+    if (processModal.mode === 'loginRestrict') {
+      results = await bulkRestrictReportLogin(reportIds, {
+        days: Number(processDays),
+        reason,
+      });
+    }
+
+    if (processModal.mode === 'withdraw') {
+      results = await bulkWithdrawReportedUsers(reportIds, {
+        reason,
+      });
+    }
+
+    if (processModal.mode === 'dismiss') {
+      results = await bulkDismissAdminReports(reportIds, {
+        reason,
+      });
+    }
+
+    const successCount = results.filter((result) => result.success).length;
+    const failCount = results.length - successCount;
+
+    if (failCount > 0) {
+      alert(`일괄 처리 완료: 성공 ${successCount}건, 실패 ${failCount}건`);
+    } else {
+      alert(`일괄 처리 완료: 성공 ${successCount}건`);
+    }
+
+    setSelectedReportIds([]);
+    setBulkAction('');
   };
 
   const submitProcess = async (e) => {
     e.preventDefault();
 
-    if (!processModal?.report) {
+    if (!processModal) {
       return;
     }
 
@@ -219,46 +454,13 @@ export default function AdminMemberReportPage({ user, onLogout }) {
       return;
     }
 
-    const { mode, report } = processModal;
-
-    const targetName = getTargetName(report);
-    const confirmMessage =
-      mode === 'loginRestrict'
-        ? `${targetName}(${report.reportedUserId}) 회원을 ${processDays}일 로그인 제한 처리하시겠습니까?`
-        : mode === 'withdraw'
-          ? `${targetName}(${report.reportedUserId}) 회원을 강제탈퇴 처리하시겠습니까?`
-          : `해당 신고를 반려 처리하시겠습니까?`;
-
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
     setProcessing(true);
 
     try {
-      if (mode === 'loginRestrict') {
-        await restrictReportLogin(report.reportId, {
-          days: Number(processDays),
-          reason,
-        });
-
-        alert('로그인 제한 처리가 완료되었습니다.');
-      }
-
-      if (mode === 'withdraw') {
-        await withdrawReportedUser(report.reportId, {
-          reason,
-        });
-
-        alert('강제탈퇴 처리가 완료되었습니다.');
-      }
-
-      if (mode === 'dismiss') {
-        await dismissAdminReport(report.reportId, {
-          reason,
-        });
-
-        alert('신고가 반려 처리되었습니다.');
+      if (processModal.isBulk) {
+        await submitBulkProcess(reason);
+      } else {
+        await submitSingleProcess(reason);
       }
 
       setProcessModal(null);
@@ -339,6 +541,35 @@ export default function AdminMemberReportPage({ user, onLogout }) {
             초기화
           </Button>
 
+          {canProcessReport && (
+            <>
+              <select
+                className="ad-select"
+                value={bulkAction}
+                onChange={(e) => setBulkAction(e.target.value)}
+              >
+                {BULK_ACTION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={selectedReportIds.length === 0 || !bulkAction}
+                onClick={openBulkProcessModal}
+              >
+                일괄 적용
+              </Button>
+
+              <span className="ad-toolbar__count">
+                선택 {selectedReportIds.length}건
+              </span>
+            </>
+          )}
+
           <span className="ad-toolbar__spacer ad-toolbar__count">
             총 {totalCount}건
           </span>
@@ -346,6 +577,15 @@ export default function AdminMemberReportPage({ user, onLogout }) {
 
         <div className="ad-table ad-table--reports">
           <div className="ad-table__head">
+            <span className="ad-table__checkbox">
+              <input
+                type="checkbox"
+                className="ad-checkbox"
+                checked={allVisiblePendingSelected}
+                disabled={pendingReportIds.length === 0 || !canProcessReport}
+                onChange={handleToggleSelectAllVisible}
+              />
+            </span>
             <span>신고대상</span>
             <span>신고자</span>
             <span>사유</span>
@@ -378,6 +618,16 @@ export default function AdminMemberReportPage({ user, onLogout }) {
 
             return (
               <div className="ad-table__row" key={report.reportId}>
+                <div className="ad-table__checkbox">
+                  <input
+                    type="checkbox"
+                    className="ad-checkbox"
+                    checked={selectedReportIds.includes(report.reportId)}
+                    disabled={!isPending || !canProcessReport}
+                    onChange={() => handleToggleSelectReport(report)}
+                  />
+                </div>
+
                 <div>
                   <div className="ad-table__cell-strong">
                     {getTargetName(report)}
@@ -431,7 +681,7 @@ export default function AdminMemberReportPage({ user, onLogout }) {
                 </div>
 
                 <div className="ad-table__actions">
-                  {isPending ? (
+                  {isPending && canProcessReport ? (
                     <>
                       <Button
                         variant="danger"
@@ -459,7 +709,7 @@ export default function AdminMemberReportPage({ user, onLogout }) {
                     </>
                   ) : (
                     <span className="ad-table__cell-muted">
-                      처리완료
+                      {isPending ? '처리 권한 없음' : '처리완료'}
                     </span>
                   )}
                 </div>
@@ -472,7 +722,7 @@ export default function AdminMemberReportPage({ user, onLogout }) {
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            onPageChange={setPage}
+            onPageChange={handlePageChange}
           />
         </div>
       </section>
@@ -483,11 +733,11 @@ export default function AdminMemberReportPage({ user, onLogout }) {
             <div className="ad-modal__head">
               <div>
                 <h2>{getProcessTitle()}</h2>
-                <p>
-                  {getTargetName(processModal.report)}
-                  {' '}
-                  @{processModal.report.reportedUserId}
-                </p>
+                <p>{getProcessTargetText()}</p>
+
+                {processModal.isBulk && bulkAction && (
+                  <p>{getBulkActionLabel(bulkAction)}</p>
+                )}
               </div>
 
               <button

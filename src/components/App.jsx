@@ -2,37 +2,40 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import '../styles/global.css';
+import { AdminPermissionProvider } from '../contexts/AdminPermissionContext';
+import RequireAdminPermission from './admin/RequireAdminPermission';
+import { ADMIN_PERMISSION_CODES } from '../api/adminRoleApi';
 
-import LandingPage        from '../pages/LandingPage';
-import LoginPage          from '../pages/LoginPage';
-import SignupPage         from '../pages/SignupPage';
-import AgentPage          from '../pages/AgentPage';
-import BoardListPage      from '../pages/BoardListPage';
-import BoardDetailPage    from '../pages/BoardDetailPage';
-import BoardWritePage     from '../pages/BoardWritePage';
-import SubscribePage      from '../pages/SubscribePage';
+import LandingPage from '../pages/LandingPage';
+import LoginPage from '../pages/LoginPage';
+import SignupPage from '../pages/SignupPage';
+import AgentPage from '../pages/AgentPage';
+import BoardListPage from '../pages/BoardListPage';
+import BoardDetailPage from '../pages/BoardDetailPage';
+import BoardWritePage from '../pages/BoardWritePage';
+import SubscribePage from '../pages/SubscribePage';
 import { LawyerVerifyPage } from '../pages/LawyerVerifyPage';
-import MatchBoardPage       from '../pages/MatchBoardPage';
-import MatchWritePage       from '../pages/MatchWritePage';
-import MatchBidListPage     from '../pages/MatchBidListPage';
-import MyPage               from '../pages/MyPage';
-import AnalysisDetailPage   from '../pages/AnalysisDetailPage';
-import LawyerListPage       from '../pages/LawyerListPage';
-import LawyerDetailPage     from '../pages/LawyerDetailPage';
+import MatchBoardPage from '../pages/MatchBoardPage';
+import MatchWritePage from '../pages/MatchWritePage';
+import MatchBidListPage from '../pages/MatchBidListPage';
+import MyPage from '../pages/MyPage';
+import AnalysisDetailPage from '../pages/AnalysisDetailPage';
+import LawyerListPage from '../pages/LawyerListPage';
+import LawyerDetailPage from '../pages/LawyerDetailPage';
 import LawyerRequestWritePage from '../pages/LawyerRequestWritePage';
 import MyLawyerRequestsPage from '../pages/MyLawyerRequestsPage';
 import DirectRequestDetailPage from '../pages/DirectRequestDetailPage';
 import LawyerReceivedRequestsPage from '../pages/LawyerReceivedRequestsPage';
-import AdminDashboardPage   from '../pages/admin/AdminDashboardPage';
-import AdminMemberPage      from '../pages/admin/AdminMemberPage';
-import AdminStatisticsPage  from '../pages/admin/AdminStatisticsPage';
-import AdminAnalysisPage    from '../pages/admin/AdminAnalysisPage';
-import AdminBoardPage       from '../pages/admin/AdminBoardPage';
-import AdminMatchBoardPage  from '../pages/admin/AdminMatchBoardPage';
-import AdminMemberRolePage  from '../pages/admin/AdminMemberRolePage';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminMemberPage from '../pages/admin/AdminMemberPage';
+import AdminStatisticsPage from '../pages/admin/AdminStatisticsPage';
+import AdminAnalysisPage from '../pages/admin/AdminAnalysisPage';
+import AdminBoardPage from '../pages/admin/AdminBoardPage';
+import AdminMatchBoardPage from '../pages/admin/AdminMatchBoardPage';
+import AdminMemberRolePage from '../pages/admin/AdminMemberRolePage';
 import AdminMemberReportPage from '../pages/admin/AdminMemberReportPage';
-import AdminSystemPage      from '../pages/admin/AdminSystemPage';
-import AdminMailPage        from '../pages/admin/AdminMailPage';
+import AdminSystemPage from '../pages/admin/AdminSystemPage';
+import AdminMailPage from '../pages/admin/AdminMailPage';
 
 // 새로고침 후에도 로그인 상태 유지 — localStorage에서 user 복원
 // JSON 파싱 실패(손상된 데이터) 시 자동 초기화
@@ -72,54 +75,165 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* 공통 */}
-        <Route path="/"               element={<LandingPage     user={user} />} />
-        <Route path="/login"          element={<LoginPage        onLogin={handleLogin} />} />
-        <Route path="/signup"         element={<SignupPage       onLogin={handleLogin} />} />
-        <Route path="/agent"          element={<AgentPage        user={user} onLogout={handleLogout} />} />
+      <AdminPermissionProvider user={user}>
+        <Routes>
+          {/* 공통 */}
+          <Route path="/" element={<LandingPage user={user} />} />
+          <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+          <Route path="/signup" element={<SignupPage onLogin={handleLogin} />} />
+          <Route path="/agent" element={<AgentPage user={user} onLogout={handleLogout} />} />
 
-        {/* 커뮤니티 게시판 */}
-        <Route path="/board"          element={<BoardListPage    user={user} />} />
-        <Route path="/board/:id"      element={<BoardDetailPage  user={user} />} />
-        <Route path="/board/:id/edit" element={<BoardWritePage   user={user} />}/>
-        <Route path="/board/write"    element={<BoardWritePage   user={user} />} />
+          {/* 커뮤니티 게시판 */}
+          <Route path="/board" element={<BoardListPage user={user} />} />
+          <Route path="/board/:id" element={<BoardDetailPage user={user} />} />
+          <Route path="/board/:id/edit" element={<BoardWritePage user={user} />} />
+          <Route path="/board/write" element={<BoardWritePage user={user} />} />
 
-        {/* 구독·인증 */}
-        <Route path="/subscribe"      element={<SubscribePage    user={user} onUserUpdate={handleUpdateUser} />} />
-        <Route path="/lawyer/verify"  element={<LawyerVerifyPage user={user} />} />
+          {/* 구독·인증 */}
+          <Route path="/subscribe" element={<SubscribePage user={user} onUserUpdate={handleUpdateUser} />} />
+          <Route path="/lawyer/verify" element={<LawyerVerifyPage user={user} />} />
 
-        {/* 변호사 매칭 의뢰글 */}
-        <Route path="/matchboard"              element={<MatchBoardPage   user={user} />} />
-        <Route path="/matchboard/write"        element={<MatchWritePage   user={user} />} />
-        <Route path="/matchboard/:id"          element={<MatchBidListPage user={user} />} />
+          {/* 변호사 매칭 의뢰글 */}
+          <Route path="/matchboard" element={<MatchBoardPage user={user} />} />
+          <Route path="/matchboard/write" element={<MatchWritePage user={user} />} />
+          <Route path="/matchboard/:id" element={<MatchBidListPage user={user} />} />
 
-        {/* 변호사 직접 연결 */}
-        <Route path="/lawyers"                            element={<LawyerListPage          user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyers/:lawyerId"                  element={<LawyerDetailPage        user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyers/:lawyerId/request"          element={<LawyerRequestWritePage  user={user} onLogout={handleLogout} />}/>
-        <Route path="/my-lawyer-requests"                 element={<MyLawyerRequestsPage    user={user} onLogout={handleLogout} />}/>
-        <Route path="/requestlist/requests/:matchId"      element={<DirectRequestDetailPage user={user} onLogout={handleLogout} />}/>
-        <Route path="/lawyer/requests"                    element={<LawyerReceivedRequestsPage user={user} onLogout={handleLogout} />}/>
+          {/* 변호사 직접 연결 */}
+          <Route path="/lawyers" element={<LawyerListPage user={user} onLogout={handleLogout} />} />
+          <Route path="/lawyers/:lawyerId" element={<LawyerDetailPage user={user} onLogout={handleLogout} />} />
+          <Route path="/lawyers/:lawyerId/request" element={<LawyerRequestWritePage user={user} onLogout={handleLogout} />} />
+          <Route path="/my-lawyer-requests" element={<MyLawyerRequestsPage user={user} onLogout={handleLogout} />} />
+          <Route path="/requestlist/requests/:matchId" element={<DirectRequestDetailPage user={user} onLogout={handleLogout} />} />
+          <Route path="/lawyer/requests" element={<LawyerReceivedRequestsPage user={user} onLogout={handleLogout} />} />
 
-        {/* 마이페이지·분석 결과 */}
-        <Route path="/mypage"       element={<MyPage             user={user} onLogout={handleLogout} onUserUpdate={handleUpdateUser}/>} />
-        <Route path="/analysis/:id" element={<AnalysisDetailPage user={user} />} />
+          {/* 마이페이지·분석 결과 */}
+          <Route path="/mypage" element={<MyPage user={user} onLogout={handleLogout} onUserUpdate={handleUpdateUser} />} />
+          <Route path="/analysis/:id" element={<AnalysisDetailPage user={user} />} />
 
-        {/* 운영(관리자) 페이지 */}
-        <Route path="/admin"             element={<AdminDashboardPage  user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/members"     element={<AdminMemberPage     user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/members/reports" element={<AdminMemberReportPage user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/members/roles" element={<AdminMemberRolePage user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/statistics"  element={<AdminStatisticsPage user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/analysis"    element={<AdminAnalysisPage   user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/board"       element={<AdminBoardPage      user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/board/match" element={<AdminMatchBoardPage user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/system"      element={<AdminSystemPage     user={user} onLogout={handleLogout} />} />
-        <Route path="/admin/mail"        element={<AdminMailPage       user={user} onLogout={handleLogout} />} />
+          {/* 운영(관리자) 페이지 */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.STATISTICS_READ}
+              >
+                <AdminDashboardPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route
+            path="/admin/members"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.MEMBER_READ}
+              >
+                <AdminMemberPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/members/reports"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.REPORT_READ}
+              >
+                <AdminMemberReportPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/members/roles"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.ADMIN_ROLE_MANAGE}
+              >
+                <AdminMemberRolePage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/statistics"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.STATISTICS_READ}
+              >
+                <AdminStatisticsPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/analysis"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.AI_ANALYSIS_MANAGE}
+              >
+                <AdminAnalysisPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/board"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.BOARD_MANAGE}
+              >
+                <AdminBoardPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/board/match"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.MATCH_BOARD_MANAGE}
+              >
+                <AdminMatchBoardPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/system"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.SYSTEM_MONITOR}
+              >
+                <AdminSystemPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route
+            path="/admin/mail"
+            element={
+              <RequireAdminPermission
+                user={user}
+                permission={ADMIN_PERMISSION_CODES.MAIL_SEND}
+              >
+                <AdminMailPage user={user} onLogout={handleLogout} />
+              </RequireAdminPermission>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AdminPermissionProvider>
     </BrowserRouter>
   );
 }

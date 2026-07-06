@@ -7,6 +7,9 @@ import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
 import AdminLayout from './AdminLayout';
 
+import { useAdminPermissions } from '../../contexts/AdminPermissionContext';
+import { ADMIN_PERMISSION_CODES } from '../../api/adminRoleApi';
+
 import {
   ADMIN_MEMBER_ROLES,
   ADMIN_MEMBER_STATUS,
@@ -115,6 +118,17 @@ function getSubscribeBadgeType(subscribe) {
 }
 
 export default function AdminMemberPage({ user, onLogout }) {
+
+  const { hasPermission } = useAdminPermissions();
+
+  const canManageSubscription = hasPermission(
+    ADMIN_PERMISSION_CODES.SUBSCRIPTION_MANAGE
+  );
+
+  const canManageMemberStatus = hasPermission(
+    ADMIN_PERMISSION_CODES.MEMBER_STATUS_MANAGE
+  );
+  
   const [filters, setFilters] = useState({
     keyword: '',
     role: '',
@@ -440,9 +454,17 @@ export default function AdminMemberPage({ user, onLogout }) {
             onChange={(e) => setBulkAction(e.target.value)}
           >
             <option value="">일괄 작업 선택</option>
-            <option value="SUBSCRIBE_PRO">선택 회원 Pro 전환</option>
-            <option value="SUBSCRIBE_BASIC">선택 회원 Basic 전환</option>
-            <option value="RESET_AI_COUNT">선택 회원 AI횟수 초기화</option>
+
+            {canManageSubscription && (
+              <>
+                <option value="SUBSCRIBE_PRO">선택 회원 Pro 전환</option>
+                <option value="SUBSCRIBE_BASIC">선택 회원 Basic 전환</option>
+              </>
+            )}
+
+            {canManageMemberStatus && (
+              <option value="RESET_AI_COUNT">선택 회원 AI횟수 초기화</option>
+            )}
           </select>
 
           <Button
@@ -571,23 +593,27 @@ export default function AdminMemberPage({ user, onLogout }) {
                 </div>
 
                 <div className="ad-table__actions">
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    disabled={isActionLoading || isWithdrawn}
-                    onClick={() => handleToggleSubscribe(member)}
-                  >
-                    {Number(member.subscribe) === 1 ? 'Basic 전환' : 'Pro 전환'}
-                  </Button>
+                  {canManageSubscription && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      disabled={isActionLoading || isWithdrawn}
+                      onClick={() => handleToggleSubscribe(member)}
+                    >
+                      {Number(member.subscribe) === 1 ? 'Basic 전환' : 'Pro 전환'}
+                    </Button>
+                  )}
 
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    disabled={isActionLoading || isWithdrawn}
-                    onClick={() => handleResetAiCount(member)}
-                  >
-                    AI횟수 초기화
-                  </Button>
+                  {canManageMemberStatus && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      disabled={isActionLoading || isWithdrawn}
+                      onClick={() => handleResetAiCount(member)}
+                    >
+                      AI횟수 초기화
+                    </Button>
+                  )}
 
                 </div>
               </div>

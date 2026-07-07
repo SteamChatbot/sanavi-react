@@ -244,7 +244,6 @@
 .ad-table--members .ad-table__row {
   grid-template-columns: 42px 100px 90px 1.1fr 1.3fr 90px 90px 90px 1.2fr;
 }
-
 .ad-table--analysis .ad-table__head,
 .ad-table--analysis .ad-table__row {
   grid-template-columns: 90px 110px 1fr 100px 90px 130px 1.2fr;
@@ -272,7 +271,41 @@
 
 .ad-table--logs .ad-table__head,
 .ad-table--logs .ad-table__row {
-  grid-template-columns: 140px 90px 1fr 140px;
+  grid-template-columns: 140px 90px 1fr 120px 260px;
+  min-width: 860px;
+}
+
+/* 출처(핸들러) 컬럼이 길어서 잘리는 문제 — 컬럼을 줄이는 대신 테이블 자체를 가로 스크롤 가능하게 함
+   세로도 100건이 한 페이지에 다 펼쳐지면 너무 길어지므로, 로그 테이블은 행 높이를 줄이고(56px→36px)
+   헤더 고정 + 약 15줄만 화면에 보이게 하고 나머지(최대 100/500건)는 세로 스크롤 */
+.ad-table--logs .ad-table__row {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+.ad-table-scroll {
+  overflow: auto;
+  max-height: calc(38px + 36px * 15);
+}
+
+.ad-table--logs .ad-table__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* 메시지가 길어서 user_id/출처 컬럼이 밀리는 문제 — 기본은 한 줄로 자르고, 클릭하면 그 행만 전체 펼침 */
+.ad-table__cell-message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ad-table__cell-message--expanded {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .ad-table__checkbox {

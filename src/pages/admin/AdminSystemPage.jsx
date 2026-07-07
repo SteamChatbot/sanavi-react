@@ -54,11 +54,14 @@ function derivePercents(m) {
   };
 }
 
-// 출처 컬럼 — handler(컨트롤러.메서드, 서비스 필터가 검색하는 값)를 우선 보여주고, 없으면 logger로 대체 + userId 병기
+// 출처 컬럼 — handler(컨트롤러.메서드, 서비스 필터가 검색하는 값)를 우선 보여주고, 없으면 logger로 대체
 function formatSource(entry) {
-  const source = entry.handler && entry.handler !== '-' ? entry.handler : entry.logger;
-  const hasUser = entry.userId && entry.userId !== '-' && entry.userId !== 'anonymous';
-  return hasUser ? `${source} · ${entry.userId}` : source;
+  return entry.handler && entry.handler !== '-' ? entry.handler : entry.logger;
+}
+
+// user_id 컬럼 — 비로그인 요청(anonymous)은 별도 표기
+function formatUserId(entry) {
+  return entry.userId && entry.userId !== '-' ? entry.userId : '-';
 }
 
 function todayStr() {
@@ -85,6 +88,20 @@ export default function AdminSystemPage({ user, onLogout }) {
   const [viewMode, setViewMode] = useState('live'); // 'live' | 'history'
   const [logs, setLogs] = useState([]);
   const [logsError, setLogsError] = useState('');
+  // 메시지가 길면 한 줄로 잘라 보여주고, 클릭한 행만 전체 펼침(user_id 등 다른 컬럼이 밀리는 문제 방지)
+  const [expandedRowKeys, setExpandedRowKeys] = useState(() => new Set());
+
+  function toggleRowExpanded(key) {
+    setExpandedRowKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   const [logTrend, setLogTrend] = useState([]);
   const [logTrendError, setLogTrendError] = useState('');
@@ -372,26 +389,40 @@ export default function AdminSystemPage({ user, onLogout }) {
 
         {logsError && <div className="ad-empty">{logsError}</div>}
 
-        <div className="ad-table ad-table--logs">
-          <div className="ad-table__head">
-            <span>시간</span>
-            <span>레벨</span>
-            <span>메시지</span>
-            <span>출처</span>
-          </div>
+        <div className="ad-table-scroll">
+          <div className="ad-table ad-table--logs">
+            <div className="ad-table__head">
+              <span>시간</span>
+              <span>레벨</span>
+              <span>메시지</span>
+              <span>user_id</span>
+              <span>출처</span>
+            </div>
 
-          {logs.length === 0 ? (
-            <div className="ad-empty">해당 조건의 로그가 없습니다.</div>
-          ) : (
-            logs.map((l, i) => (
-              <div className="ad-table__row" key={`${l.timestamp}-${l.traceId}-${i}`}>
-                <div className="ad-table__cell-muted">{l.timestamp}</div>
-                <div><Badge type={LOG_LEVEL_BADGE[l.level] ?? 'pending'}>{l.level}</Badge></div>
-                <div>{l.message}</div>
-                <div className="ad-table__cell-muted">{formatSource(l)}</div>
-              </div>
-            ))
-          )}
+            {logs.length === 0 ? (
+              <div className="ad-empty">해당 조건의 로그가 없습니다.</div>
+            ) : (
+              logs.map((l, i) => {
+                const rowKey = `${l.timestamp}-${l.traceId}-${i}`;
+                const isExpanded = expandedRowKeys.has(rowKey);
+                return (
+                  <div className="ad-table__row" key={rowKey}>
+                    <div className="ad-table__cell-muted">{l.timestamp}</div>
+                    <div><Badge type={LOG_LEVEL_BADGE[l.level] ?? 'pending'}>{l.level}</Badge></div>
+                    <div
+                      className={isExpanded ? 'ad-table__cell-message ad-table__cell-message--expanded' : 'ad-table__cell-message'}
+                      title="클릭하면 전체 메시지가 펼쳐집니다"
+                      onClick={() => toggleRowExpanded(rowKey)}
+                    >
+                      {l.message}
+                    </div>
+                    <div className="ad-table__cell-muted">{formatUserId(l)}</div>
+                    <div className="ad-table__cell-muted">{formatSource(l)}</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
     </AdminLayout>

@@ -827,3 +827,295 @@
   font-size: 14px;
   color: var(--color-gray-500);
 }
+
+/* 게시판관리 — API 연결 후 8컬럼 테이블 레이아웃 보정 */
+.ad-table--board .ad-table__head,
+.ad-table--board .ad-table__row {
+  grid-template-columns:
+    64px minmax(180px, 1.7fr) 110px 120px 70px 80px 80px 90px;
+  column-gap: 12px;
+}
+
+.ad-table--comments .ad-table__head,
+.ad-table--comments .ad-table__row {
+  grid-template-columns:
+    64px minmax(160px, 1.2fr) 100px minmax(180px, 1.6fr) 80px 80px 120px 90px;
+  column-gap: 12px;
+}
+
+/* 게시판관리 버튼 컬럼 정렬 */
+.ad-table--board .ad-table__actions,
+.ad-table--comments .ad-table__actions {
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* 긴 제목/댓글 내용이 버튼 영역을 밀지 않도록 처리 */
+.ad-table--board .ad-table__cell-strong,
+.ad-table--comments .ad-table__cell-strong,
+.ad-table--comments .ad-table__cell-muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 게시판관리 — 좁은 화면에서 관리 컬럼이 잘리지 않도록 가로 스크롤 처리 */
+.ad-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+/* 체크박스 포함 게시판관리 테이블 */
+.ad-table--board.ad-table--selectable {
+  min-width: 1040px;
+}
+
+.ad-table--comments.ad-table--selectable {
+  min-width: 1120px;
+}
+
+.ad-table--board.ad-table--selectable .ad-table__head,
+.ad-table--board.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    44px 64px minmax(200px, 1.7fr) 110px 130px 70px 80px 80px 90px;
+  column-gap: 12px;
+}
+
+.ad-table--comments.ad-table--selectable .ad-table__head,
+.ad-table--comments.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    44px 64px minmax(160px, 1.2fr) 100px minmax(200px, 1.6fr) 80px 80px 120px 90px;
+  column-gap: 12px;
+}
+
+.ad-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.ad-table__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ad-bulk-actions__count {
+  font-size: 13px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.ad-table--board .ad-table__actions,
+.ad-table--comments .ad-table__actions {
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.ad-table--board .ad-table__cell-strong,
+.ad-table--comments .ad-table__cell-strong,
+.ad-table--comments .ad-table__cell-muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 의뢰글 게시판관리 — 체크박스 포함 테이블 */
+.ad-table--match-posts.ad-table--selectable {
+  min-width: 1040px;
+}
+
+.ad-table--match-bids.ad-table--selectable {
+  min-width: 1060px;
+}
+
+.ad-table--match-posts.ad-table--selectable .ad-table__head,
+.ad-table--match-posts.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    40px 52px minmax(180px, 1.5fr) 96px 76px 88px 64px 76px 118px 120px;
+  column-gap: 10px;
+}
+
+.ad-table--match-bids.ad-table--selectable .ad-table__head,
+.ad-table--match-bids.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    40px 52px minmax(170px, 1.3fr) 96px minmax(180px, 1.5fr) 88px 76px 118px 96px;
+  column-gap: 10px;
+}
+
+.ad-table--match-posts .ad-table__actions,
+.ad-table--match-bids .ad-table__actions {
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.ad-table--match-posts .ad-table__cell-strong,
+.ad-table--match-bids .ad-table__cell-strong,
+.ad-table--match-bids .ad-table__cell-muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 관리자 게시판/의뢰글관리 — 가로 스크롤 제거용 압축 테이블 */
+.ad-table-wrap {
+  width: 100%;
+  overflow-x: visible !important;
+  padding-bottom: 0;
+}
+
+.ad-table--board.ad-table--selectable,
+.ad-table--comments.ad-table--selectable,
+.ad-table--match-posts.ad-table--selectable,
+.ad-table--match-bids.ad-table--selectable {
+  width: 100%;
+  min-width: 0 !important;
+}
+
+/* 그리드 내부 텍스트가 컬럼을 밀어내지 않도록 처리 */
+.ad-table--selectable .ad-table__head>*,
+.ad-table--selectable .ad-table__row>* {
+  min-width: 0;
+}
+
+/* 게시판관리 - 게시글 */
+.ad-table--board.ad-table--selectable .ad-table__head,
+.ad-table--board.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    32px 42px minmax(120px, 1.6fr) 74px 96px 46px 54px 54px 58px !important;
+  column-gap: 6px;
+  font-size: 12px;
+}
+
+/* 게시판관리 - 댓글 */
+.ad-table--comments.ad-table--selectable .ad-table__head,
+.ad-table--comments.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    32px 42px minmax(100px, 1fr) 70px minmax(120px, 1.4fr) 54px 54px 96px 58px !important;
+  column-gap: 6px;
+  font-size: 12px;
+}
+
+/* 의뢰글 게시판관리 - 의뢰글 */
+.ad-table--match-posts.ad-table--selectable .ad-table__head,
+.ad-table--match-posts.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    32px 42px minmax(120px, 1.5fr) 70px 44px 58px 42px 54px 92px 92px !important;
+  column-gap: 6px;
+  font-size: 12px;
+}
+
+/* 의뢰글 게시판관리 - 입찰 의견 */
+.ad-table--match-bids.ad-table--selectable .ad-table__head,
+.ad-table--match-bids.ad-table--selectable .ad-table__row {
+  grid-template-columns:
+    32px 42px minmax(110px, 1.2fr) 70px minmax(120px, 1.5fr) 58px 54px 92px 58px !important;
+  column-gap: 6px;
+  font-size: 12px;
+}
+
+/* 체크박스 크기 압축 */
+.ad-checkbox {
+  width: 14px;
+  height: 14px;
+}
+
+/* 관리 버튼 영역 압축 */
+.ad-table--selectable .ad-table__actions {
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.ad-table--selectable .ad-table__actions button {
+  min-width: 42px;
+  padding-left: 7px;
+  padding-right: 7px;
+  white-space: nowrap;
+}
+
+/* 긴 텍스트는 한 줄 말줄임 */
+.ad-table--selectable .ad-table__cell-strong,
+.ad-table--selectable .ad-table__cell-muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 툴바도 좁은 화면에서 깨지지 않게 */
+.ad-toolbar {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ad-search {
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.ad-bulk-actions {
+  margin-left: 0;
+  flex-wrap: wrap;
+}
+
+/* 아주 좁은 창에서는 작성일 컬럼만 숨겨서 버튼 영역 확보 */
+@media (max-width: 900px) {
+
+  .ad-table--board.ad-table--selectable .ad-table__head,
+  .ad-table--board.ad-table--selectable .ad-table__row {
+    grid-template-columns:
+      30px 38px minmax(110px, 1.7fr) 68px 42px 52px 52px 56px !important;
+  }
+
+  .ad-table--board.ad-table--selectable .ad-table__head> :nth-child(5),
+  .ad-table--board.ad-table--selectable .ad-table__row> :nth-child(5) {
+    display: none;
+  }
+
+  .ad-table--comments.ad-table--selectable .ad-table__head,
+  .ad-table--comments.ad-table--selectable .ad-table__row {
+    grid-template-columns:
+      30px 38px minmax(90px, 1fr) 64px minmax(110px, 1.4fr) 52px 52px 56px !important;
+  }
+
+  .ad-table--comments.ad-table--selectable .ad-table__head> :nth-child(8),
+  .ad-table--comments.ad-table--selectable .ad-table__row> :nth-child(8) {
+    display: none;
+  }
+
+  .ad-table--match-posts.ad-table--selectable .ad-table__head,
+  .ad-table--match-posts.ad-table--selectable .ad-table__row {
+    grid-template-columns:
+      30px 38px minmax(110px, 1.5fr) 64px 42px 54px 40px 52px 88px !important;
+  }
+
+  .ad-table--match-posts.ad-table--selectable .ad-table__head> :nth-child(9),
+  .ad-table--match-posts.ad-table--selectable .ad-table__row> :nth-child(9) {
+    display: none;
+  }
+
+  .ad-table--match-bids.ad-table--selectable .ad-table__head,
+  .ad-table--match-bids.ad-table--selectable .ad-table__row {
+    grid-template-columns:
+      30px 38px minmax(100px, 1.2fr) 64px minmax(110px, 1.4fr) 54px 52px 56px !important;
+  }
+
+  .ad-table--match-bids.ad-table--selectable .ad-table__head> :nth-child(8),
+  .ad-table--match-bids.ad-table--selectable .ad-table__row> :nth-child(8) {
+    display: none;
+  }
+}

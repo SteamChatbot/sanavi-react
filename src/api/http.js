@@ -8,13 +8,17 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 let isRefreshing = false;
 let isRedirectingToLogin = false;
 
-// refresh 시도에서 제외할 공개 인증 API 목록
+// refresh 시도에서 제외할 경로 목록
+// - 공개 인증 API: 로그인 실패를 세션 만료로 오해 방지
+// - 관리자 API: 로그인하지 않거나 세부 역할 미등록 시 401/403이 오더라도
+//   세션 전체를 만료 처리하면 안 됨 (페이지 내 오류 표시로 처리)
 const AUTH_REFRESH_EXCLUDED_PATHS = [
   '/api/members/login',
   '/api/members/signup',
   '/api/members/check-id',
   '/api/members/email/send',
   '/api/members/email/verify',
+  '/api/admin/',
 ];
 
 function isAuthRefreshExcluded(path, skipAuthRefresh) {

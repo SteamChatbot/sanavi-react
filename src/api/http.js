@@ -3,6 +3,8 @@
 // 단, 로그인/회원가입/이메일 인증 같은 공개 인증 API는 refresh 대상에서 제외
 // 이유: 로그인 제한/비밀번호 오류/이메일 중복 같은 실패를 "세션 만료"로 오해하면 안 됨
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 let isRefreshing = false;
 let isRedirectingToLogin = false;
 
@@ -58,7 +60,7 @@ async function tryRefresh() {
   isRefreshing = true;
 
   try {
-    const res = await fetch('/api/members/refresh', {
+    const res = await fetch(BASE_URL + '/api/members/refresh', {
       method: 'POST',
       credentials: 'include',
     });
@@ -109,7 +111,7 @@ export async function request(path, options = {}) {
     ...fetchOptions
   } = options;
 
-  let response = await fetch(path, buildRequestOptions(fetchOptions));
+  let response = await fetch(BASE_URL + path, buildRequestOptions(fetchOptions));
 
   const shouldSkipAuthRefresh = isAuthRefreshExcluded(path, skipAuthRefresh);
 
@@ -117,7 +119,7 @@ export async function request(path, options = {}) {
     const refreshed = await tryRefresh();
 
     if (refreshed) {
-      response = await fetch(path, buildRequestOptions(fetchOptions));
+      response = await fetch(BASE_URL + path, buildRequestOptions(fetchOptions));
     }
 
     if (!refreshed || response.status === 401) {

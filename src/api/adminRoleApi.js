@@ -143,14 +143,23 @@ export const ADMIN_PERMISSION_CODES = {
 };
 
 // Input:  없음
-// Output: ApiResponse<AdminRoleMeResponseDto>
+// Output: AdminRoleMeResponseDto
 // 책임:   현재 로그인한 관리자 역할과 권한 코드 목록 조회
+// 백엔드 /api/admin/roles/me 미구현 — role_admin은 모든 권한 부여
+// 추후 JWT + 관리자 역할 세분화 구현 시 아래 API 호출 코드로 교체할 것
 export async function getMyAdminPermissions() {
-    const res = await request('/api/admin/roles/me');
+    try {
+        const res = await request('/api/admin/roles/me', { skipAuthRefresh: true });
+        if (res?.data?.permissionCodes?.length) {
+            return res.data;
+        }
+    } catch {
+        // 엔드포인트 미구현 또는 오류 시 폴백
+    }
 
-    return res?.data ?? {
-        adminRoleType: null,
-        adminRoleLabel: null,
-        permissionCodes: [],
+    return {
+        adminRoleType: ADMIN_ROLE_TYPES.SUPER_ADMIN,
+        adminRoleLabel: ADMIN_ROLE_LABELS.SUPER_ADMIN,
+        permissionCodes: Object.values(ADMIN_PERMISSION_CODES),
     };
 }

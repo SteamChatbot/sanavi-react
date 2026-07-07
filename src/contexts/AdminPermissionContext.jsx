@@ -19,7 +19,8 @@ export function AdminPermissionProvider({ user, children }) {
     const { pathname } = useLocation();
 
     const [adminPermission, setAdminPermission] = useState(null);
-    const [loading, setLoading] = useState(false);
+    // 어드민 경로 진입 시 첫 렌더에서 "접근 권한 없음" 플래시 방지
+    const [loading, setLoading] = useState(() => pathname.startsWith('/admin'));
     const [errorMessage, setErrorMessage] = useState('');
 
     const normalizedRole = String(user?.role || '').trim().toLowerCase();

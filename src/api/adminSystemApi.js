@@ -9,7 +9,7 @@ export function getSystemMetrics() {
 }
 
 // Input:  { limit, level, userId, handler } — level/userId/handler 생략 시 전체
-// Output: LogEntryDto[] (최신순) — { timestamp, level, logger, message, traceId, clientIp, userId, handler, duration }
+// Output: LogEntryDto[] (최신순) — { timestamp, level, logger, message, traceId, clientIp, userId, handler }
 export function getRecentLogs({ limit = 100, level, userId, handler } = {}) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (level) params.set('level', level);

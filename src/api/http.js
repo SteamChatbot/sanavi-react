@@ -5,6 +5,12 @@
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
+// authApi.js의 refreshToken()처럼 http.js 인터셉터를 우회해 직접 fetch해야 하는 곳에서
+// 상대경로를 그냥 쓰면 (S3 등 정적호스팅에서) 프론트 자신의 origin으로 요청이 나가버림 — 항상 이 함수로 절대경로를 만들 것
+export function resolveUrl(path) {
+  return BASE_URL + path;
+}
+
 let isRefreshing = false;
 let isRedirectingToLogin = false;
 
@@ -64,7 +70,7 @@ async function tryRefresh() {
   isRefreshing = true;
 
   try {
-    const res = await fetch(BASE_URL + '/api/members/refresh', {
+    const res = await fetch(resolveUrl('/api/members/refresh'), {
       method: 'POST',
       credentials: 'include',
     });
@@ -115,7 +121,7 @@ export async function request(path, options = {}) {
     ...fetchOptions
   } = options;
 
-  let response = await fetch(BASE_URL + path, buildRequestOptions(fetchOptions));
+  let response = await fetch(resolveUrl(path), buildRequestOptions(fetchOptions));
 
   const shouldSkipAuthRefresh = isAuthRefreshExcluded(path, skipAuthRefresh);
 
@@ -123,7 +129,7 @@ export async function request(path, options = {}) {
     const refreshed = await tryRefresh();
 
     if (refreshed) {
-      response = await fetch(BASE_URL + path, buildRequestOptions(fetchOptions));
+      response = await fetch(resolveUrl(path), buildRequestOptions(fetchOptions));
     }
 
     if (!refreshed || response.status === 401) {

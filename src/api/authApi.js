@@ -1,4 +1,4 @@
-import { request } from './http';
+import { request, resolveUrl } from './http';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export function logoutMember() {
  * POST /api/members/refresh
  */
 export async function refreshToken() {
-  const res = await fetch('/api/members/refresh', {
+  const res = await fetch(resolveUrl('/api/members/refresh'), {
     method: 'POST',
     credentials: 'include',
   });

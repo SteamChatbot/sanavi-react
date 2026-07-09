@@ -367,7 +367,7 @@ export default function SignupPage() {
 
     setErrors((prev) => ({
       ...prev,
-      [id]: '',
+      specialty: '',
       submit: '',
     }));
   };

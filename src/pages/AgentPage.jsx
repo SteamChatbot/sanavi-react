@@ -5,10 +5,8 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import Badge from '../components/Badge';
 import { ToastContainer } from '../components/Toast';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { submitAnalysis, pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
-import { addCanvasAsPages } from '../utils/pdfReport';
+import { downloadAnalysisPdf } from '../utils/pdfReport';
 import GaugeCard from '../components/GaugeCard';
 import ChecklistItem from '../components/ChecklistItem';
 import ChatBubble from '../components/ChatBubble';
@@ -52,9 +50,7 @@ export default function AgentPage({ user, onLogout }) {
   const [pendingMsgIndex, setPendingMsgIndex] = useState(0);
   const pollIntervalRef = useRef(null);
   const pendingTimerRef = useRef(null);
-  const resultRef = useRef(null); // PDF 캡처 대상 영역
-  const pdfPage1Ref = useRef(null); // PDF 전용 1페이지(기본정보+승인율) — 화면엔 안 보임
-  const pdfPage2Ref = useRef(null); // PDF 전용 2페이지(체크리스트+주의사항+참고판례) — 화면엔 안 보임
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   //pending 상태일 때 1.8초마다 로딩 문구 순환
   useEffect(() => {
@@ -177,31 +173,29 @@ export default function AgentPage({ user, onLogout }) {
     }
   };
 
-  //downloadPDF Pro 플랜 전용 — 웹 화면을 그대로 캡처하지 않고, PDF 전용으로 짠 별도 레이아웃
-  //(pdfPage1Ref: 기본정보+승인율 / pdfPage2Ref: 체크리스트+주의사항+참고판례)을 각각 캡처해 페이지 경계를 명확히 나눔
+  //downloadPDF Pro 플랜 전용 — 화면 캡처가 아니라 jsPDF로 텍스트를 직접 그리는 방식(utils/pdfReport.js)
   //INPUT: user.subscribe(구독여부) — false면 다운로드 차단
   const downloadPDF = async () => {
-    if (!user?.subscribe) return;
-    if (!pdfPage1Ref.current || !pdfPage2Ref.current) return;
+    if (!user?.subscribe || !result) return;
 
+    setPdfDownloading(true);
     try {
-      const captureOptions = { scale: 2, useCORS: true, backgroundColor: '#ffffff' };
-
-      const page1Canvas = await html2canvas(pdfPage1Ref.current, captureOptions);
-      const page2Canvas = await html2canvas(pdfPage2Ref.current, captureOptions);
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      addCanvasAsPages(pdf, page1Canvas, true);
-      addCanvasAsPages(pdf, page2Canvas, false);
-
-      const safeJob = form.job || '직업';
-      const safeDisease = form.disease || '질병';
-
-      pdf.save(`산내비_산재분석_${safeJob}_${safeDisease}.pdf`);
+      await downloadAnalysisPdf({
+        job: form.job,
+        disease: form.disease,
+        inspector: form.inspector,
+        dateLabel: new Date().toLocaleDateString('ko-KR'),
+        score: result.score,
+        checklist,
+        warnings: result.warnings,
+        metaContent: result.metaContent,
+        filename: `산내비_산재분석_${form.job || '직업'}_${form.disease || '질병'}.pdf`,
+      });
     } catch (error) {
       console.error(error);
       showError('PDF 생성에 실패했습니다.');
+    } finally {
+      setPdfDownloading(false);
     }
   };
 
@@ -267,13 +261,13 @@ export default function AgentPage({ user, onLogout }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {user?.subscribe
-                    ? <Button variant="outline" size="sm" onClick={downloadPDF}>📄 PDF</Button>
+                    ? <Button variant="outline" size="sm" loading={pdfDownloading} onClick={downloadPDF}>📄 PDF</Button>
                     : <Button variant="outline" size="sm" onClick={() => showError('PDF 다운로드는 Pro 플랜에서 가능합니다.')}>📄 PDF 🔒</Button>
                   }
                   <Button variant="ghost" size="sm" onClick={() => { setView('form'); setTaskId(null); }}>입력 수정</Button>
                 </div>
               </div>
-              <div className="result-body" ref={resultRef}>
+              <div className="result-body">
                 <GaugeCard score={result.score} />
 
                 <div className="evidence-card">
@@ -351,103 +345,6 @@ export default function AgentPage({ user, onLogout }) {
         </section>
 
       </div>
-
-      {/* PDF 전용 레이아웃 — 화면엔 안 보이고 downloadPDF에서만 캡처 대상으로 사용.
-          웹 화면(result-body) 그대로 캡처하던 기존 방식은 카드 사이 여백/그림자 때문에 페이지 경계에서
-          내용이 잘리는 문제가 있어서, 인쇄 전용으로 여백·폰트크기를 다시 짠 별도 마크업으로 분리함. */}
-      {result && (
-        <div style={{ position: 'absolute', left: -9999, top: 0 }} aria-hidden="true">
-          <div
-            ref={pdfPage1Ref}
-            style={{
-              width: 794, minHeight: 1000, boxSizing: 'border-box', padding: 56,
-              background: '#ffffff', color: '#1a1a1a',
-              fontFamily: "'Malgun Gothic','Apple SD Gothic Neo',sans-serif",
-            }}
-          >
-            <div style={{ borderBottom: '3px solid #1a5c38', paddingBottom: 16, marginBottom: 28 }}>
-              <div style={{ fontSize: 12, color: '#888' }}>산내비 AI · 산업재해 분석 리포트</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#1a5c38', marginTop: 4 }}>
-                AI 산재 승인율 분석 결과
-              </div>
-              <div style={{ fontSize: 11, color: '#999', marginTop: 6 }}>
-                생성일 {new Date().toLocaleDateString('ko-KR')}
-              </div>
-            </div>
-
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>기본 정보</div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px',
-              fontSize: 12.5, marginBottom: 22,
-            }}>
-              <div><span style={{ color: '#888' }}>이름</span> &nbsp;{form.name || '-'}</div>
-              <div><span style={{ color: '#888' }}>나이</span> &nbsp;{form.age ? `${form.age}세` : '-'}</div>
-              <div><span style={{ color: '#888' }}>직업</span> &nbsp;{form.job || '-'}</div>
-              <div><span style={{ color: '#888' }}>질병/부상명</span> &nbsp;{form.disease || '-'}</div>
-            </div>
-
-            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>사고 경위</div>
-            <div style={{
-              fontSize: 11.5, lineHeight: 1.65, color: '#333', whiteSpace: 'pre-wrap',
-              border: '1px solid #eaeaea', borderRadius: 8, padding: 14, marginBottom: 30,
-            }}>
-              {form.inspector || '-'}
-            </div>
-
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>AI 예측 산재 승인율</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 42, fontWeight: 800, color: '#1a5c38' }}>{result.score}%</span>
-              <span style={{ fontSize: 11, color: '#888' }}>통계·판례 기반 AI 예측치</span>
-            </div>
-            <div style={{ height: 10, borderRadius: 6, background: '#eee', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${result.score}%`, background: '#1a5c38' }} />
-            </div>
-
-            <div style={{ fontSize: 10, color: '#aaa', marginTop: 60 }}>
-              본 리포트는 AI 통계·판례 분석에 기반한 참고 자료이며 법적 효력을 갖지 않습니다. — 1 / 2
-            </div>
-          </div>
-
-          <div
-            ref={pdfPage2Ref}
-            style={{
-              width: 794, minHeight: 1000, boxSizing: 'border-box', padding: 56,
-              background: '#ffffff', color: '#1a1a1a',
-              fontFamily: "'Malgun Gothic','Apple SD Gothic Neo',sans-serif",
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
-              📋 증거 보강 체크리스트 ({checklist.length}건)
-            </div>
-            {checklist.map((c, i) => (
-              <div key={c.id} style={{ borderBottom: '1px solid #eee', padding: '9px 0' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>{i + 1}. {c.title}</div>
-                {c.purpose && (
-                  <div style={{ fontSize: 11, color: '#777', marginBottom: 2 }}>목적 — {c.purpose}</div>
-                )}
-                <div style={{ fontSize: 11, color: '#777', marginBottom: 2 }}>확인 방법 — {c.method}</div>
-                <div style={{ fontSize: 11, color: '#777' }}>사유 — {c.reason}</div>
-              </div>
-            ))}
-
-            <div style={{ fontSize: 15, fontWeight: 700, margin: '26px 0 12px' }}>⚠ 판례 기반 주의사항</div>
-            {result.warnings.map((w, i) => (
-              <div key={i} style={{ fontSize: 11.5, lineHeight: 1.6, marginBottom: 6 }}>· {w}</div>
-            ))}
-
-            {result.metaContent.length > 0 && (
-              <>
-                <div style={{ fontSize: 15, fontWeight: 700, margin: '26px 0 12px' }}>📎 참고 판례</div>
-                {result.metaContent.map((m, i) => (
-                  <div key={i} style={{ fontSize: 11.5, marginBottom: 4 }}>판례 {i + 1}. {m}</div>
-                ))}
-              </>
-            )}
-
-            <div style={{ fontSize: 10, color: '#aaa', marginTop: 32 }}>2 / 2</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { ToastContainer } from '../components/Toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { submitAnalysis, pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
+import { addCanvasAsPages } from '../utils/pdfReport';
 import GaugeCard from '../components/GaugeCard';
 import ChecklistItem from '../components/ChecklistItem';
 import ChatBubble from '../components/ChatBubble';
@@ -173,46 +174,6 @@ export default function AgentPage({ user, onLogout }) {
       showError(err.message);
     } finally {
       setIsChatLoading(false);
-    }
-  };
-
-  // 캔버스 하나를 A4 페이지 높이 단위로 잘라 PDF에 순서대로 추가
-  // (섹션 하나가 A4 한 장을 넘길 만큼 길 때만 여기서 추가 페이지로 자연스럽게 이어짐)
-  const addCanvasAsPages = (pdf, canvas, isFirstPageOfDoc) => {
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    const pageCanvasHeight = Math.floor((canvasWidth * pageHeight) / pageWidth);
-
-    let renderedHeight = 0;
-    let sliceIndex = 0;
-
-    while (renderedHeight < canvasHeight) {
-      const pageCanvas = document.createElement('canvas');
-      const pageContext = pageCanvas.getContext('2d');
-
-      pageCanvas.width = canvasWidth;
-      pageCanvas.height = Math.min(pageCanvasHeight, canvasHeight - renderedHeight);
-
-      pageContext.drawImage(
-        canvas,
-        0, renderedHeight, canvasWidth, pageCanvas.height,
-        0, 0, canvasWidth, pageCanvas.height
-      );
-
-      const imageData = pageCanvas.toDataURL('image/png');
-      const imageHeight = (pageCanvas.height * pageWidth) / canvasWidth;
-
-      if (!(isFirstPageOfDoc && sliceIndex === 0)) {
-        pdf.addPage();
-      }
-
-      pdf.addImage(imageData, 'PNG', 0, 0, pageWidth, imageHeight);
-
-      renderedHeight += pageCanvasHeight;
-      sliceIndex += 1;
     }
   };
 

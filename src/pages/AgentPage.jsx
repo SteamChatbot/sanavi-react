@@ -52,6 +52,8 @@ export default function AgentPage({ user, onLogout }) {
   const pollIntervalRef = useRef(null);
   const pendingTimerRef = useRef(null);
   const resultRef = useRef(null); // PDF 캡처 대상 영역
+  const pdfPage1Ref = useRef(null); // PDF 전용 1페이지(기본정보+승인율) — 화면엔 안 보임
+  const pdfPage2Ref = useRef(null); // PDF 전용 2페이지(체크리스트+주의사항+참고판례) — 화면엔 안 보임
 
   //pending 상태일 때 1.8초마다 로딩 문구 순환
   useEffect(() => {
@@ -174,90 +176,63 @@ export default function AgentPage({ user, onLogout }) {
     }
   };
 
-  //downloadPDF Pro 플랜 전용 — 결과 영역을 캡처해 PDF로 저장
+  // 캔버스 하나를 A4 페이지 높이 단위로 잘라 PDF에 순서대로 추가
+  // (섹션 하나가 A4 한 장을 넘길 만큼 길 때만 여기서 추가 페이지로 자연스럽게 이어짐)
+  const addCanvasAsPages = (pdf, canvas, isFirstPageOfDoc) => {
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const pageCanvasHeight = Math.floor((canvasWidth * pageHeight) / pageWidth);
+
+    let renderedHeight = 0;
+    let sliceIndex = 0;
+
+    while (renderedHeight < canvasHeight) {
+      const pageCanvas = document.createElement('canvas');
+      const pageContext = pageCanvas.getContext('2d');
+
+      pageCanvas.width = canvasWidth;
+      pageCanvas.height = Math.min(pageCanvasHeight, canvasHeight - renderedHeight);
+
+      pageContext.drawImage(
+        canvas,
+        0, renderedHeight, canvasWidth, pageCanvas.height,
+        0, 0, canvasWidth, pageCanvas.height
+      );
+
+      const imageData = pageCanvas.toDataURL('image/png');
+      const imageHeight = (pageCanvas.height * pageWidth) / canvasWidth;
+
+      if (!(isFirstPageOfDoc && sliceIndex === 0)) {
+        pdf.addPage();
+      }
+
+      pdf.addImage(imageData, 'PNG', 0, 0, pageWidth, imageHeight);
+
+      renderedHeight += pageCanvasHeight;
+      sliceIndex += 1;
+    }
+  };
+
+  //downloadPDF Pro 플랜 전용 — 웹 화면을 그대로 캡처하지 않고, PDF 전용으로 짠 별도 레이아웃
+  //(pdfPage1Ref: 기본정보+승인율 / pdfPage2Ref: 체크리스트+주의사항+참고판례)을 각각 캡처해 페이지 경계를 명확히 나눔
   //INPUT: user.subscribe(구독여부) — false면 다운로드 차단
   const downloadPDF = async () => {
     if (!user?.subscribe) return;
-    if (!resultRef.current) return;
+    if (!pdfPage1Ref.current || !pdfPage2Ref.current) return;
 
     try {
-      const target = resultRef.current;
+      const captureOptions = { scale: 2, useCORS: true, backgroundColor: '#ffffff' };
 
-      const canvas = await html2canvas(target, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: target.scrollWidth,
-        windowHeight: target.scrollHeight,
-        onclone: (clonedDoc) => {
-          const clonedResultBody = clonedDoc.querySelector('.result-body');
+      const page1Canvas = await html2canvas(pdfPage1Ref.current, captureOptions);
+      const page2Canvas = await html2canvas(pdfPage2Ref.current, captureOptions);
 
-          if (clonedResultBody) {
-            clonedResultBody.style.maxHeight = 'none';
-            clonedResultBody.style.height = 'auto';
-            clonedResultBody.style.overflow = 'visible';
-          }
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-          const clonedGlassPanel = clonedDoc.querySelector('.agent-left.glass-panel');
-
-          if (clonedGlassPanel) {
-            clonedGlassPanel.style.overflow = 'visible';
-            clonedGlassPanel.style.height = 'auto';
-            clonedGlassPanel.style.maxHeight = 'none';
-          }
-        },
-      });
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-
-      const pageCanvasHeight = Math.floor((canvasWidth * pageHeight) / pageWidth);
-
-      let renderedHeight = 0;
-      let pageIndex = 0;
-
-      while (renderedHeight < canvasHeight) {
-        const pageCanvas = document.createElement('canvas');
-        const pageContext = pageCanvas.getContext('2d');
-
-        pageCanvas.width = canvasWidth;
-        pageCanvas.height = Math.min(pageCanvasHeight, canvasHeight - renderedHeight);
-
-        pageContext.drawImage(
-          canvas,
-          0,
-          renderedHeight,
-          canvasWidth,
-          pageCanvas.height,
-          0,
-          0,
-          canvasWidth,
-          pageCanvas.height
-        );
-
-        const imageData = pageCanvas.toDataURL('image/png');
-        const imageHeight = (pageCanvas.height * pageWidth) / canvasWidth;
-
-        if (pageIndex > 0) {
-          pdf.addPage();
-        }
-
-        pdf.addImage(imageData, 'PNG', 0, 0, pageWidth, imageHeight);
-
-        renderedHeight += pageCanvasHeight;
-        pageIndex += 1;
-      }
+      addCanvasAsPages(pdf, page1Canvas, true);
+      addCanvasAsPages(pdf, page2Canvas, false);
 
       const safeJob = form.job || '직업';
       const safeDisease = form.disease || '질병';
@@ -415,6 +390,103 @@ export default function AgentPage({ user, onLogout }) {
         </section>
 
       </div>
+
+      {/* PDF 전용 레이아웃 — 화면엔 안 보이고 downloadPDF에서만 캡처 대상으로 사용.
+          웹 화면(result-body) 그대로 캡처하던 기존 방식은 카드 사이 여백/그림자 때문에 페이지 경계에서
+          내용이 잘리는 문제가 있어서, 인쇄 전용으로 여백·폰트크기를 다시 짠 별도 마크업으로 분리함. */}
+      {result && (
+        <div style={{ position: 'absolute', left: -9999, top: 0 }} aria-hidden="true">
+          <div
+            ref={pdfPage1Ref}
+            style={{
+              width: 794, minHeight: 1000, boxSizing: 'border-box', padding: 56,
+              background: '#ffffff', color: '#1a1a1a',
+              fontFamily: "'Malgun Gothic','Apple SD Gothic Neo',sans-serif",
+            }}
+          >
+            <div style={{ borderBottom: '3px solid #1a5c38', paddingBottom: 16, marginBottom: 28 }}>
+              <div style={{ fontSize: 12, color: '#888' }}>산내비 AI · 산업재해 분석 리포트</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#1a5c38', marginTop: 4 }}>
+                AI 산재 승인율 분석 결과
+              </div>
+              <div style={{ fontSize: 11, color: '#999', marginTop: 6 }}>
+                생성일 {new Date().toLocaleDateString('ko-KR')}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>기본 정보</div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px',
+              fontSize: 12.5, marginBottom: 22,
+            }}>
+              <div><span style={{ color: '#888' }}>이름</span> &nbsp;{form.name || '-'}</div>
+              <div><span style={{ color: '#888' }}>나이</span> &nbsp;{form.age ? `${form.age}세` : '-'}</div>
+              <div><span style={{ color: '#888' }}>직업</span> &nbsp;{form.job || '-'}</div>
+              <div><span style={{ color: '#888' }}>질병/부상명</span> &nbsp;{form.disease || '-'}</div>
+            </div>
+
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>사고 경위</div>
+            <div style={{
+              fontSize: 11.5, lineHeight: 1.65, color: '#333', whiteSpace: 'pre-wrap',
+              border: '1px solid #eaeaea', borderRadius: 8, padding: 14, marginBottom: 30,
+            }}>
+              {form.inspector || '-'}
+            </div>
+
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>AI 예측 산재 승인율</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 42, fontWeight: 800, color: '#1a5c38' }}>{result.score}%</span>
+              <span style={{ fontSize: 11, color: '#888' }}>통계·판례 기반 AI 예측치</span>
+            </div>
+            <div style={{ height: 10, borderRadius: 6, background: '#eee', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${result.score}%`, background: '#1a5c38' }} />
+            </div>
+
+            <div style={{ fontSize: 10, color: '#aaa', marginTop: 60 }}>
+              본 리포트는 AI 통계·판례 분석에 기반한 참고 자료이며 법적 효력을 갖지 않습니다. — 1 / 2
+            </div>
+          </div>
+
+          <div
+            ref={pdfPage2Ref}
+            style={{
+              width: 794, minHeight: 1000, boxSizing: 'border-box', padding: 56,
+              background: '#ffffff', color: '#1a1a1a',
+              fontFamily: "'Malgun Gothic','Apple SD Gothic Neo',sans-serif",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
+              📋 증거 보강 체크리스트 ({checklist.length}건)
+            </div>
+            {checklist.map((c, i) => (
+              <div key={c.id} style={{ borderBottom: '1px solid #eee', padding: '9px 0' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>{i + 1}. {c.title}</div>
+                {c.purpose && (
+                  <div style={{ fontSize: 11, color: '#777', marginBottom: 2 }}>목적 — {c.purpose}</div>
+                )}
+                <div style={{ fontSize: 11, color: '#777', marginBottom: 2 }}>확인 방법 — {c.method}</div>
+                <div style={{ fontSize: 11, color: '#777' }}>사유 — {c.reason}</div>
+              </div>
+            ))}
+
+            <div style={{ fontSize: 15, fontWeight: 700, margin: '26px 0 12px' }}>⚠ 판례 기반 주의사항</div>
+            {result.warnings.map((w, i) => (
+              <div key={i} style={{ fontSize: 11.5, lineHeight: 1.6, marginBottom: 6 }}>· {w}</div>
+            ))}
+
+            {result.metaContent.length > 0 && (
+              <>
+                <div style={{ fontSize: 15, fontWeight: 700, margin: '26px 0 12px' }}>📎 참고 판례</div>
+                {result.metaContent.map((m, i) => (
+                  <div key={i} style={{ fontSize: 11.5, marginBottom: 4 }}>판례 {i + 1}. {m}</div>
+                ))}
+              </>
+            )}
+
+            <div style={{ fontSize: 10, color: '#aaa', marginTop: 32 }}>2 / 2</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

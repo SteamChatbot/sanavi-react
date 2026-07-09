@@ -1,19 +1,15 @@
 // AI 분석관리 — 전체 분석이력 조회/검색, 분석결과 강제삭제
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import GaugeCard from '../../components/GaugeCard';
 import Pagination from '../../components/Pagination';
 import AdminLayout from './AdminLayout';
+import { getAdminAnalysisList, getAdminAnalysisStats, forceDeleteAdminAnalysis } from '../../api/adminAnalysisApi';
 import './AdminPage.css';
 
-const MOCK_ANALYSIS = [
-  { id: 'a1029', userId: 'kimcs01', disease: '소음성 난청', job: '조선소 용접공', score: 82, createdAt: '2026-06-30 10:02' },
-  { id: 'a1028', userId: 'parkmj', disease: '근막동통증후군', job: '택배 상하차', score: 64, createdAt: '2026-06-30 08:47' },
-  { id: 'a1027', userId: 'leesh', disease: '추간판탈출증', job: '건설 형틀목공', score: 58, createdAt: '2026-06-29 22:13' },
-  { id: 'a1026', userId: 'jungyr', disease: '수근관증후군', job: '간호조무사', score: 45, createdAt: '2026-06-29 19:30' },
-  { id: 'a1025', userId: 'choiwd', disease: '진폐증', job: '광산 채굴공', score: 91, createdAt: '2026-06-29 14:08' },
-];
+const PAGE_SIZE = 10;
 
 function scoreBadgeType(score) {
   if (score >= 75) return 'ok';
@@ -21,35 +17,91 @@ function scoreBadgeType(score) {
   return 'rejected';
 }
 
-function average(list) {
-  if (list.length === 0) return null;
-  return Math.round(list.reduce((sum, a) => sum + a.score, 0) / list.length);
+// "2026-06-30T10:02:00" -> "2026-06-30 10:02"
+function formatDateTime(value) {
+  if (!value) return '-';
+  return value.replace('T', ' ').slice(0, 16);
 }
 
 export default function AdminAnalysisPage({ user, onLogout }) {
-  const [items, setItems] = useState(MOCK_ANALYSIS);
-  const [keyword, setKeyword] = useState('');
-  const [scoreFilter, setScoreFilter] = useState('');
+  const navigate = useNavigate();
+
+  const [items, setItems] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [listError, setListError] = useState('');
+
+  const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState('');
+
   const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    return items.filter((a) => {
-      if (keyword && !`${a.userId}${a.disease}${a.job}`.toLowerCase().includes(keyword.toLowerCase())) return false;
-      if (scoreFilter === 'high' && a.score < 75) return false;
-      if (scoreFilter === 'mid' && (a.score < 50 || a.score >= 75)) return false;
-      if (scoreFilter === 'low' && a.score >= 50) return false;
-      return true;
-    });
-  }, [items, keyword, scoreFilter]);
+  // 입력 중인 값(draft) — "조회"를 눌러야 applied*로 커밋되어 실제 요청에 반영됨
+  const [draftKeyword, setDraftKeyword] = useState('');
+  const [draftScoreFilter, setDraftScoreFilter] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [appliedScoreFilter, setAppliedScoreFilter] = useState('');
 
-  const isFiltered = Boolean(keyword || scoreFilter);
-  const overallAvg = average(items);
-  const filteredAvg = average(filtered);
+  function applyFilters() {
+    setAppliedKeyword(draftKeyword.trim());
+    setAppliedScoreFilter(draftScoreFilter);
+    setPage(1);
+  }
 
-  const forceDelete = (id) => {
+  function handleSearchKeyDown(e) {
+    if (e.key === 'Enter') applyFilters();
+  }
+
+  // 목록 — page/필터(applied*)가 바뀔 때마다 조회
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await getAdminAnalysisList({
+          page, size: PAGE_SIZE, keyword: appliedKeyword, scoreFilter: appliedScoreFilter,
+        });
+        if (!cancelled) {
+          setItems(res.contents ?? []);
+          setTotalCount(res.totalCount ?? 0);
+          setTotalPages(res.totalPages || 1);
+          setListError('');
+        }
+      } catch (err) {
+        if (!cancelled) setListError(err.message || '분석 이력을 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [page, appliedKeyword, appliedScoreFilter]);
+
+  // 승인율 게이지 — 필터가 바뀔 때만 조회 (페이지네이션과 무관)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await getAdminAnalysisStats({ keyword: appliedKeyword, scoreFilter: appliedScoreFilter });
+        if (!cancelled) { setStats(res); setStatsError(''); }
+      } catch (err) {
+        if (!cancelled) setStatsError(err.message || '승인율 통계를 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [appliedKeyword, appliedScoreFilter]);
+
+  const isFiltered = Boolean(appliedKeyword || appliedScoreFilter);
+
+  async function forceDelete(id) {
     if (!window.confirm(`분석 결과 ${id} 를 강제 삭제하시겠습니까?`)) return;
-    setItems((prev) => prev.filter((a) => a.id !== id));
-  };
+
+    try {
+      await forceDeleteAdminAnalysis(id);
+      setItems((prev) => prev.filter((a) => a.id !== id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      alert(err.message || '삭제에 실패했습니다.');
+    }
+  }
 
   return (
     <AdminLayout
@@ -65,18 +117,19 @@ export default function AdminAnalysisPage({ user, onLogout }) {
             <div className="ad-section__desc">전체 분석 평균 승인율과 현재 검색·필터 결과의 평균 승인율을 비교합니다.</div>
           </div>
         </div>
+        {statsError && <div className="ad-empty">{statsError}</div>}
         <div className="ad-section__body ad-approval-row">
           <GaugeCard
             size={120}
             label="전체 평균 승인율"
-            score={overallAvg}
-            sub={`전체 ${items.length}건 기준`}
+            score={stats?.overallAverage != null ? Math.round(stats.overallAverage) : null}
+            sub={`전체 ${stats?.overallCount ?? 0}건 기준`}
           />
           <GaugeCard
             size={120}
             label="검색결과 평균 승인율"
-            score={filteredAvg}
-            sub={isFiltered ? `검색결과 ${filtered.length}건 기준` : '검색·필터를 적용하면 결과가 표시됩니다'}
+            score={isFiltered && stats?.filteredAverage != null ? Math.round(stats.filteredAverage) : null}
+            sub={isFiltered ? `검색결과 ${stats?.filteredCount ?? 0}건 기준` : '검색·필터를 적용하면 결과가 표시됩니다'}
           />
         </div>
       </section>
@@ -90,20 +143,25 @@ export default function AdminAnalysisPage({ user, onLogout }) {
             </svg>
             <input
               placeholder="회원ID, 질병명, 직업 검색"
-              value={keyword}
-              onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
+              value={draftKeyword}
+              onChange={(e) => setDraftKeyword(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
             />
           </div>
 
-          <select className="ad-select" value={scoreFilter} onChange={(e) => { setScoreFilter(e.target.value); setPage(1); }}>
+          <select className="ad-select" value={draftScoreFilter} onChange={(e) => setDraftScoreFilter(e.target.value)}>
             <option value="">승인율 전체</option>
             <option value="high">높음 (75%↑)</option>
             <option value="mid">보통 (50~74%)</option>
             <option value="low">낮음 (50%↓)</option>
           </select>
 
-          <span className="ad-toolbar__spacer ad-toolbar__count">총 {filtered.length}건</span>
+          <Button size="sm" onClick={applyFilters}>조회</Button>
+
+          <span className="ad-toolbar__spacer ad-toolbar__count">총 {totalCount}건</span>
         </div>
+
+        {listError && <div className="ad-empty">{listError}</div>}
 
         <div className="ad-table ad-table--analysis">
           <div className="ad-table__head">
@@ -116,19 +174,19 @@ export default function AdminAnalysisPage({ user, onLogout }) {
             <span>관리</span>
           </div>
 
-          {filtered.length === 0 ? (
+          {!listError && items.length === 0 ? (
             <div className="ad-empty">조건에 맞는 분석 이력이 없습니다.</div>
           ) : (
-            filtered.map((a) => (
+            items.map((a) => (
               <div className="ad-table__row" key={a.id}>
                 <div className="ad-table__cell-strong">{a.id}</div>
                 <div>{a.userId}</div>
                 <div>{a.disease}</div>
                 <div className="ad-table__cell-muted">{a.job}</div>
-                <div><Badge type={scoreBadgeType(a.score)}>{a.score}%</Badge></div>
-                <div className="ad-table__cell-muted">{a.createdAt}</div>
+                <div><Badge type={scoreBadgeType(a.baseScore)}>{Math.round(a.baseScore)}%</Badge></div>
+                <div className="ad-table__cell-muted">{formatDateTime(a.createdAt)}</div>
                 <div className="ad-table__actions">
-                  <Button variant="outline" size="xs">상세보기</Button>
+                  <Button variant="outline" size="xs" onClick={() => navigate(`/analysis/${a.id}`)}>상세보기</Button>
                   <Button variant="danger-solid" size="xs" onClick={() => forceDelete(a.id)}>강제삭제</Button>
                 </div>
               </div>
@@ -137,7 +195,7 @@ export default function AdminAnalysisPage({ user, onLogout }) {
         </div>
 
         <div className="ad-pagination-wrap">
-          <Pagination currentPage={page} totalPages={1} onPageChange={setPage} />
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </section>
     </AdminLayout>

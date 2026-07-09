@@ -11,6 +11,8 @@ import { createMatch } from '../api/matchApi';
 export default function MatchWritePage({ user, onLogout }) {
   const navigate = useNavigate();
 
+  const MAX_TOTAL_FILE_SIZE = 50 * 1024 * 1024;
+
   const handleSubmit = async ({ form, files }) => {
     if (!user?.userId) {
       alert('로그인이 필요합니다.');
@@ -18,15 +20,33 @@ export default function MatchWritePage({ user, onLogout }) {
       return;
     }
 
+    if (!files || files.length === 0) {
+      alert('첨부파일을 1개 이상 등록해 주세요.');
+      return;
+    }
+
+    const totalFileSize = files.reduce((sum, file) => sum + file.size, 0);
+
+    if (totalFileSize > MAX_TOTAL_FILE_SIZE) {
+      alert('첨부파일 전체 용량은 최대 50MB까지 업로드할 수 있습니다.');
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('userId',    user.userId);
-    formData.append('title',     form.title);
+    formData.append('userId', user.userId);
+    formData.append('title', form.title);
     formData.append('clientName', form.clientName);
-    formData.append('content',   form.content);
-    formData.append('price',     form.price);
+    formData.append('content', form.content);
+    formData.append('price', form.price);
     formData.append('matchType', 'AUCTION');
-    if (form.preferredRegion) formData.append('preferredRegion', form.preferredRegion);
-    if (files?.[0]) formData.append('pdf', files[0]);
+
+    if (form.preferredRegion) {
+      formData.append('preferredRegion', form.preferredRegion);
+    }
+
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
 
     await createMatch(formData);
     alert('의뢰글이 등록되었습니다.');

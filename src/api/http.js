@@ -142,6 +142,10 @@ export async function request(path, options = {}) {
   const body = await parseResponse(response);
 
   if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error('첨부파일 전체 용량은 최대 50MB까지 업로드할 수 있습니다.');
+    }
+
     throw new Error(getErrorMessage(body, response.status));
   }
 

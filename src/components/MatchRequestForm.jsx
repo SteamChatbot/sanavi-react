@@ -18,12 +18,19 @@ const DEFAULT_FORM = {
   matchType: 'AUCTION',
 };
 
+const MAX_TOTAL_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_TOTAL_FILE_SIZE_MB = 50;
+
 function isSameFile(a, b) {
   return (
     a.name === b.name &&
     a.size === b.size &&
     a.lastModified === b.lastModified
   );
+}
+
+function getTotalFileSize(files) {
+  return files.reduce((sum, file) => sum + file.size, 0);
 }
 
 export default function MatchRequestForm({
@@ -81,13 +88,30 @@ export default function MatchRequestForm({
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files || []);
 
-    setFiles((prev) => {
-      const merged = [...prev, ...selectedFiles];
+    if (selectedFiles.length === 0) {
+      return;
+    }
 
-      return merged.filter((file, index, self) => {
-        return index === self.findIndex((target) => isSameFile(file, target));
-      });
+    const merged = [...files, ...selectedFiles];
+
+    const uniqueFiles = merged.filter((file, index, self) => {
+      return index === self.findIndex((target) => isSameFile(file, target));
     });
+
+    const totalSize = getTotalFileSize(uniqueFiles);
+
+    if (totalSize > MAX_TOTAL_FILE_SIZE) {
+      setErrors((prev) => ({
+        ...prev,
+        file: `첨부파일 전체 용량은 최대 ${MAX_TOTAL_FILE_SIZE_MB}MB까지 업로드할 수 있습니다.`,
+        submit: '',
+      }));
+
+      e.target.value = '';
+      return;
+    }
+
+    setFiles(uniqueFiles);
 
     setErrors((prev) => ({
       ...prev,
@@ -126,6 +150,8 @@ export default function MatchRequestForm({
 
     if (requireFile && files.length === 0) {
       nextErrors.file = '첨부파일을 1개 이상 등록해 주세요.';
+    } else if (getTotalFileSize(files) > MAX_TOTAL_FILE_SIZE) {
+      nextErrors.file = `첨부파일 전체 용량은 최대 ${MAX_TOTAL_FILE_SIZE_MB}MB까지 업로드할 수 있습니다.`;
     }
 
     return nextErrors;
@@ -334,11 +360,11 @@ export default function MatchRequestForm({
           <div className="mw-upload-name">
             {files.length > 0
               ? `${files.length}개 파일 선택됨`
-              : '파일을 클릭하거나 드래그하세요'}
+              : '파일을 클릭해서 첨부하세요'}
           </div>
 
           <div className="mw-upload-sub">
-            PDF, JPG, PNG 허용 · 최대 50MB
+            파일 형식 제한 없음 · 전체 최대 50MB · 1개 이상 필수
           </div>
 
           <span className="mw-upload-button">
@@ -349,7 +375,6 @@ export default function MatchRequestForm({
         <input
           id="match-files"
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
           multiple
           style={{ display: 'none' }}
           onChange={handleFileChange}
@@ -382,6 +407,15 @@ export default function MatchRequestForm({
                 </button>
               </div>
             ))}
+
+            <div className="mw-file-row">
+              <div className="mw-file-info">
+                <strong>전체 첨부 용량</strong>
+                <span>
+                  {(getTotalFileSize(files) / 1024 / 1024).toFixed(1)}MB / {MAX_TOTAL_FILE_SIZE_MB}MB
+                </span>
+              </div>
+            </div>
           </div>
         )}
 

@@ -33,14 +33,14 @@ function createCaseSearchUrl(caseNumber) {
 //INPUT: user(로그인 유저 정보)
 export default function AgentPage({ user, onLogout }) {
   const [view, setView] = useState('form'); // 'form' | 'pending' | 'result' 상태변화관리
-  const [form, setForm] = useState({ name:'', age:'', job:'', disease:'', inspector:'' });
+  const [form, setForm] = useState({ name: '', age: '', job: '', disease: '', inspector: '' });
   const [taskId, setTaskId] = useState(null);
   const [result, setResult] = useState(null);
   const [checklist, setChecklist] = useState([]);
   const [loading, setLoading] = useState(false);
   const { toasts, showError, removeToast } = useToast();
   const [chatMsgs, setChatMsgs] = useState([
-    { id:1, senderType:'AI', message:'안녕하세요. 산재 분석을 도와드릴 AI 어드바이저입니다. 왼쪽 폼을 먼저 작성해 주세요.' },
+    { id: 1, senderType: 'AI', message: '안녕하세요. 산재 분석을 도와드릴 AI 어드바이저입니다. 왼쪽 폼을 먼저 작성해 주세요.' },
   ]);
   const [chatInput, setChatInput] = useState('');
   // 브라우저 캐시용 어드바이저 컨텍스트 — 분석 완료 시 저장, 매 채팅 요청에 포함
@@ -179,22 +179,92 @@ export default function AgentPage({ user, onLogout }) {
   const downloadPDF = async () => {
     if (!user?.subscribe) return;
     if (!resultRef.current) return;
+
     try {
-      const canvas = await html2canvas(resultRef.current, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const target = resultRef.current;
+
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight,
+        onclone: (clonedDoc) => {
+          const clonedResultBody = clonedDoc.querySelector('.result-body');
+
+          if (clonedResultBody) {
+            clonedResultBody.style.maxHeight = 'none';
+            clonedResultBody.style.height = 'auto';
+            clonedResultBody.style.overflow = 'visible';
+          }
+
+          const clonedGlassPanel = clonedDoc.querySelector('.agent-left.glass-panel');
+
+          if (clonedGlassPanel) {
+            clonedGlassPanel.style.overflow = 'visible';
+            clonedGlassPanel.style.height = 'auto';
+            clonedGlassPanel.style.maxHeight = 'none';
+          }
+        },
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = (canvas.height * pageWidth) / canvas.width;
-      let yOffset = 0;
-      // 결과 이미지가 A4 한 장 초과 시 페이지 분할
-      while (yOffset < imgHeight) {
-        pdf.addImage(imgData, 'PNG', 0, -yOffset, pageWidth, imgHeight);
-        yOffset += pageHeight;
-        if (yOffset < imgHeight) pdf.addPage();
+
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+
+      const pageCanvasHeight = Math.floor((canvasWidth * pageHeight) / pageWidth);
+
+      let renderedHeight = 0;
+      let pageIndex = 0;
+
+      while (renderedHeight < canvasHeight) {
+        const pageCanvas = document.createElement('canvas');
+        const pageContext = pageCanvas.getContext('2d');
+
+        pageCanvas.width = canvasWidth;
+        pageCanvas.height = Math.min(pageCanvasHeight, canvasHeight - renderedHeight);
+
+        pageContext.drawImage(
+          canvas,
+          0,
+          renderedHeight,
+          canvasWidth,
+          pageCanvas.height,
+          0,
+          0,
+          canvasWidth,
+          pageCanvas.height
+        );
+
+        const imageData = pageCanvas.toDataURL('image/png');
+        const imageHeight = (pageCanvas.height * pageWidth) / canvasWidth;
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(imageData, 'PNG', 0, 0, pageWidth, imageHeight);
+
+        renderedHeight += pageCanvasHeight;
+        pageIndex += 1;
       }
-      pdf.save(`산내비_산재분석_${form.job}_${form.disease}.pdf`);
-    } catch {
+
+      const safeJob = form.job || '직업';
+      const safeDisease = form.disease || '질병';
+
+      pdf.save(`산내비_산재분석_${safeJob}_${safeDisease}.pdf`);
+    } catch (error) {
+      console.error(error);
       showError('PDF 생성에 실패했습니다.');
     }
   };
@@ -203,7 +273,7 @@ export default function AgentPage({ user, onLogout }) {
 
   return (
     <div className="agent-page">
-      <Navbar user={user} onLogout={onLogout}/>
+      <Navbar user={user} onLogout={onLogout} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       {loading && (
         <div className="loading-modal">
@@ -226,12 +296,12 @@ export default function AgentPage({ user, onLogout }) {
                 <p>정확한 분석을 위해 상세 정보를 입력해 주세요.</p>
               </div>
               <form className="analysis-form" onSubmit={handleSubmit}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <Input id="name" label="이름" placeholder="홍길동" value={form.name} onChange={handleChange} />
-                  <Input id="age"  label="나이" type="number" placeholder="45" value={form.age} onChange={handleChange} />
+                  <Input id="age" label="나이" type="number" placeholder="45" value={form.age} onChange={handleChange} />
                 </div>
-                <Input id="job"      label="직업"       placeholder="예: 건설현장 용접공"       value={form.job}      onChange={handleChange} />
-                <Input id="disease"  label="질병/부상명" placeholder="예: 요추 추간판 탈출증"   value={form.disease}  onChange={handleChange} />
+                <Input id="job" label="직업" placeholder="예: 건설현장 용접공" value={form.job} onChange={handleChange} />
+                <Input id="disease" label="질병/부상명" placeholder="예: 요추 추간판 탈출증" value={form.disease} onChange={handleChange} />
                 <Input id="inspector" label="사고 경위" multiline rows={4} placeholder="언제, 어디서, 어떻게 다치셨나요?" value={form.inspector} onChange={handleChange} />
                 <Button type="submit" variant="primary" size="lg" fullWidth>분석 시작하기</Button>
               </form>
@@ -257,9 +327,9 @@ export default function AgentPage({ user, onLogout }) {
               <div className="panel-header panel-header--result">
                 <div>
                   <Badge type="ok">분석 완료</Badge>
-                  <h2 style={{ marginTop:6 }}>분석 결과 리포트</h2>
+                  <h2 style={{ marginTop: 6 }}>분석 결과 리포트</h2>
                 </div>
-                <div style={{ display:'flex', gap:8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   {user?.subscribe
                     ? <Button variant="outline" size="sm" onClick={downloadPDF}>📄 PDF</Button>
                     : <Button variant="outline" size="sm" onClick={() => showError('PDF 다운로드는 Pro 플랜에서 가능합니다.')}>📄 PDF 🔒</Button>
@@ -276,7 +346,7 @@ export default function AgentPage({ user, onLogout }) {
                     <span className="evidence-card__count">{checked}/{checklist.length}</span>
                   </div>
                   <div className="progress-bar">
-                    <div className="progress-bar__fill" style={{ width:`${checklist.length ? (checked/checklist.length)*100 : 0}%` }} />
+                    <div className="progress-bar__fill" style={{ width: `${checklist.length ? (checked / checklist.length) * 100 : 0}%` }} />
                   </div>
                 </div>
 

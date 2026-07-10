@@ -1,18 +1,13 @@
 // 관리자 홈 — 회원/분석/시스템 현황을 한 화면에서 요약
-// DOM 단계: 회원수/Pro구독자는 실 API 연동 완료, 나머지 통계·목록은 아직 더미 데이터
+// 상단 통계 카드 4개 + 시스템 상태 게이지는 실 API 연동 완료. 최근 가입 회원/최근 분석 이력 목록은 아직 더미 데이터
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import AdminLayout from './AdminLayout';
-import { getMemberStats } from '../../api/adminStatsApi';
+import { getMemberStats, getAnalysisTrend } from '../../api/adminStatsApi';
 import { getSystemMetrics } from '../../api/adminSystemApi';
+import { getAdminBoardPosts, getAdminBoardComments } from '../../api/adminBoardApi';
 import './AdminPage.css';
-
-// 회원수/Pro구독자를 뺀 나머지는 아직 더미 데이터(추후 연동)
-const OTHER_STATS = [
-  { label: '오늘 AI 분석횟수', value: '96건', delta: '+12% (어제 대비)', dir: 'up' },
-  { label: '신고 누적 게시글', value: '5건', delta: '처리 대기 3건', dir: 'down' },
-];
 
 const RECENT_MEMBERS = [
   { id: 'kimcs01', name: '김철수', job: '건설 용접공', joinedAt: '2026-06-30 09:12' },
@@ -32,6 +27,48 @@ export default function AdminDashboardPage({ user, onLogout }) {
   const [memberStatsError, setMemberStatsError] = useState('');
   const [metrics, setMetrics] = useState(null);
   const [metricsError, setMetricsError] = useState('');
+  const [analysisTrend, setAnalysisTrend] = useState(null);
+  const [analysisTrendError, setAnalysisTrendError] = useState('');
+  const [reportedCount, setReportedCount] = useState(null);
+  const [reportedCountError, setReportedCountError] = useState('');
+
+  // 오늘 AI 분석횟수 — 일별 추이의 마지막(가장 최근) 포인트를 오늘로 취급
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await getAnalysisTrend('daily');
+        if (!cancelled) setAnalysisTrend(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!cancelled) setAnalysisTrendError(err.message || 'AI 분석 추이를 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // 신고 누적 게시글 — 신고된 게시글/댓글 목록을 size=1로만 조회해 totalElements(전체 건수)만 사용
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [postSummary, commentSummary] = await Promise.all([
+          getAdminBoardPosts({ page: 1, size: 1, status: 'ALL', reportedOnly: true }),
+          getAdminBoardComments({ page: 1, size: 1, status: 'ALL', reportedOnly: true }),
+        ]);
+        if (!cancelled) {
+          setReportedCount({
+            posts: postSummary?.totalElements ?? 0,
+            comments: commentSummary?.totalElements ?? 0,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) setReportedCountError(err.message || '신고 현황을 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +133,24 @@ export default function AdminDashboardPage({ user, onLogout }) {
       delta: memberStats ? proRate : (memberStatsError || ''),
       dir: 'up',
     },
-    ...OTHER_STATS,
+    (() => {
+      const points = analysisTrend || [];
+      const today = points[points.length - 1];
+      const yesterday = points[points.length - 2];
+      const diff = today && yesterday ? today.count - yesterday.count : null;
+      return {
+        label: '오늘 AI 분석횟수',
+        value: today ? `${today.count}건` : (analysisTrendError ? '-' : '불러오는 중...'),
+        delta: diff != null ? `${diff >= 0 ? '+' : ''}${diff} (어제 대비)` : (analysisTrendError || ''),
+        dir: diff != null && diff < 0 ? 'down' : 'up',
+      };
+    })(),
+    {
+      label: '신고 누적 게시글',
+      value: reportedCount ? `${reportedCount.posts}건` : (reportedCountError ? '-' : '불러오는 중...'),
+      delta: reportedCount ? `댓글 신고 ${reportedCount.comments}건` : (reportedCountError || ''),
+      dir: 'down',
+    },
   ];
 
   return (

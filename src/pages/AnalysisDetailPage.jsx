@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
-import { pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
+import {
+  pollAnalysis,
+  sendAdvisorChat,
+  saveChecklistChecks,
+} from '../api/analysisApi';
 import { downloadAnalysisPdf } from '../utils/pdfReport';
 import './AnalysisDetailPage.css';
 
@@ -42,6 +46,8 @@ export default function AnalysisDetailPage({ user }) {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [checkSaving, setCheckSaving] = useState(false);
+  const [checkSaved, setCheckSaved] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -53,7 +59,7 @@ export default function AnalysisDetailPage({ user }) {
         }
         const d = result.data;
         setData(d);
-        setChecklist((d.checklist || []).map(c => ({ ...c, checked: false })));
+        setChecklist((d.checklist || []).map(c => ({ ...c, checked: Boolean(c.checked), })));
         if (d.chat_content) {
           setChatMsgs([{ id: 1, senderType: 'AI', message: d.chat_content }]);
         }
@@ -66,8 +72,16 @@ export default function AnalysisDetailPage({ user }) {
     load();
   }, [id]);
 
-  const toggleCheck = (cid) =>
-    setChecklist(p => p.map(c => c.id === cid ? { ...c, checked: !c.checked } : c));
+  const toggleCheck = (cid) => {
+    setChecklist(p =>
+      p.map(c =>
+        c.id === cid
+          ? { ...c, checked: !c.checked }
+          : c
+      )
+    );
+    setCheckSaved(false);
+  };
 
   const sendChat = async () => {
     if (!chatInput.trim() || chatLoading) return;
@@ -121,6 +135,24 @@ export default function AnalysisDetailPage({ user }) {
       alert('PDF 생성에 실패했습니다.');
     } finally {
       setPdfDownloading(false);
+    }
+  };
+
+  const handleSaveChecklist = async () => {
+    if (!user?.userId) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+
+    setCheckSaving(true);
+
+    try {
+      await saveChecklistChecks(id, checklist);
+      setCheckSaved(true);
+    } catch (err) {
+      alert(err.message || '체크 상태 저장에 실패했습니다.');
+    } finally {
+      setCheckSaving(false);
     }
   };
 
@@ -183,7 +215,21 @@ export default function AnalysisDetailPage({ user }) {
             <div className="ad-section">
               <div className="ad-section-header">
                 <span className="ad-section-title">📋 증거 준비 체크리스트</span>
-                <span className="ad-check-count">{checked}/{checklist.length}</span>
+
+                <div className="ad-check-actions">
+                  <span className="ad-check-count">
+                    {checked}/{checklist.length}
+                  </span>
+
+                  <Button
+                    variant={checkSaved ? 'success' : 'primary'}
+                    size="xs"
+                    loading={checkSaving}
+                    onClick={handleSaveChecklist}
+                  >
+                    {checkSaved ? '저장 완료 ✓' : '저장'}
+                  </Button>
+                </div>
               </div>
               {checklist.map(c => (
                 <div key={c.id} className={`ad-cl-item${c.checked ? ' ad-cl-item--done' : ''}`}>

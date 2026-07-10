@@ -77,3 +77,19 @@
 .ad-chat-input:focus { border-color: var(--color-primary); }
 .ad-chat-send { width: 34px; height: 34px; border-radius: var(--radius-md); background: var(--color-primary); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
 .ad-chat-send:hover { background: #4f46e5; }
+
+.ad-check-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ad-check-actions button {
+  width: auto;
+  min-width: 58px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}

@@ -5,7 +5,12 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import Badge from '../components/Badge';
 import { ToastContainer } from '../components/Toast';
-import { submitAnalysis, pollAnalysis, sendAdvisorChat } from '../api/analysisApi';
+import {
+  submitAnalysis,
+  pollAnalysis,
+  sendAdvisorChat,
+  saveChecklistChecks,
+} from '../api/analysisApi';
 import { downloadAnalysisPdf } from '../utils/pdfReport';
 import GaugeCard from '../components/GaugeCard';
 import ChecklistItem from '../components/ChecklistItem';
@@ -51,6 +56,8 @@ export default function AgentPage({ user, onLogout }) {
   const pollIntervalRef = useRef(null);
   const pendingTimerRef = useRef(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [checkSaving, setCheckSaving] = useState(false);
+  const [checkSaved, setCheckSaved] = useState(false);
 
   //pending 상태일 때 1.8초마다 로딩 문구 순환
   useEffect(() => {
@@ -111,7 +118,7 @@ export default function AgentPage({ user, onLogout }) {
             purpose: c.purpose || '',
             method: c.method,
             reason: c.reason,
-            checked: false,
+            checked: Boolean(c.checked),
           })));
           // 어드바이저 컨텍스트를 브라우저에 캐싱 (raw API 포맷 그대로 저장)
           // 추가질의 데이터 input
@@ -149,7 +156,14 @@ export default function AgentPage({ user, onLogout }) {
   }, [taskId]);
 
   const toggleCheck = (id) => {
-    setChecklist(p => p.map(c => c.id === id ? { ...c, checked: !c.checked } : c));
+    setChecklist(p =>
+      p.map(c =>
+        c.id === id
+          ? { ...c, checked: !c.checked }
+          : c
+      )
+    );
+    setCheckSaved(false);
   };
   //브라우저 캐시 컨텍스트 + 히스토리를 서버에 전송해 실제 AI 응답 수신
   const sendChat = async () => {
@@ -196,6 +210,29 @@ export default function AgentPage({ user, onLogout }) {
       showError('PDF 생성에 실패했습니다.');
     } finally {
       setPdfDownloading(false);
+    }
+  };
+
+  const handleSaveChecklist = async () => {
+    if (!user?.userId) {
+      alert('체크 상태를 저장하려면 로그인이 필요합니다.');
+      return;
+    }
+
+    if (!taskId) {
+      showError('분석 결과 ID를 확인할 수 없습니다.');
+      return;
+    }
+
+    setCheckSaving(true);
+
+    try {
+      await saveChecklistChecks(taskId, checklist);
+      setCheckSaved(true);
+    } catch (err) {
+      showError(err.message || '체크 상태 저장에 실패했습니다.');
+    } finally {
+      setCheckSaving(false);
     }
   };
 
@@ -285,6 +322,19 @@ export default function AgentPage({ user, onLogout }) {
                   {checklist.map(c => (
                     <ChecklistItem key={c.id} {...c} onToggle={() => toggleCheck(c.id)} purpose={c.purpose} />
                   ))}
+                </div>
+                <div className="checklist-save-area">
+                  <Button
+                    variant={checkSaved ? 'success' : 'primary'}
+                    size="sm"
+                    loading={checkSaving}
+                    onClick={handleSaveChecklist}
+                  >
+                    {checkSaved ? '저장되었습니다 ✓' : '체크 상태 저장'}
+                  </Button>
+                  <span className="checklist-save-hint">
+                    저장 버튼을 누른 상태만 분석 이력에 반영됩니다.
+                  </span>
                 </div>
 
                 <div className="warning-area">

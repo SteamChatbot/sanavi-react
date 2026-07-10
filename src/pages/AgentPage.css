@@ -205,3 +205,15 @@
   background: var(--color-gray-50); border-radius: var(--radius-full);
   font-size: 13px; font-weight: 600; color: var(--color-primary);
 }
+
+.checklist-save-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.checklist-save-hint {
+  font-size: 11px;
+  color: var(--color-gray-400);
+}

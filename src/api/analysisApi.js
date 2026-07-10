@@ -56,3 +56,16 @@ export function deleteMyAnalysis(taskId) {
     method: 'DELETE',
   });
 }
+
+export function saveChecklistChecks(taskId, checklist) {
+  return request(`/api/analysis/${taskId}/checklist`, {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      items: checklist.map(item => ({
+        id: item.id,
+        checked: Boolean(item.checked),
+      })),
+    }),
+  });
+}

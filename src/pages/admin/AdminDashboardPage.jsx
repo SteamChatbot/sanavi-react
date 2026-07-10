@@ -1,14 +1,15 @@
 // 관리자 홈 — 회원/분석/시스템 현황을 한 화면에서 요약
-// DOM 단계: 통계·목록은 더미 데이터로 표시, 실제 API 연동은 추후 진행
-import React from 'react';
+// DOM 단계: 회원수/Pro구독자는 실 API 연동 완료, 나머지 통계·목록은 아직 더미 데이터
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../../components/Badge';
 import AdminLayout from './AdminLayout';
+import { getMemberStats } from '../../api/adminStatsApi';
+import { getSystemMetrics } from '../../api/adminSystemApi';
 import './AdminPage.css';
 
-const STATS = [
-  { label: '전체 회원수', value: '1,284명', delta: '+18 (오늘)', dir: 'up' },
-  { label: 'Pro 구독자', value: '212명', delta: '전체의 16.5%', dir: 'up' },
+// 회원수/Pro구독자를 뺀 나머지는 아직 더미 데이터(추후 연동)
+const OTHER_STATS = [
   { label: '오늘 AI 분석횟수', value: '96건', delta: '+12% (어제 대비)', dir: 'up' },
   { label: '신고 누적 게시글', value: '5건', delta: '처리 대기 3건', dir: 'down' },
 ];
@@ -27,6 +28,77 @@ const RECENT_ANALYSIS = [
 ];
 
 export default function AdminDashboardPage({ user, onLogout }) {
+  const [memberStats, setMemberStats] = useState(null);
+  const [memberStatsError, setMemberStatsError] = useState('');
+  const [metrics, setMetrics] = useState(null);
+  const [metricsError, setMetricsError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await getMemberStats();
+        if (!cancelled) setMemberStats(data);
+      } catch (err) {
+        if (!cancelled) setMemberStatsError(err.message || '회원 통계를 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // 시스템 모니터링 페이지(/admin/system)와 같은 API — 대시보드에선 스냅샷 1회만 조회(폴링 없음)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await getSystemMetrics();
+        if (!cancelled) setMetrics(data);
+      } catch (err) {
+        if (!cancelled) setMetricsError(err.message || '시스템 상태를 불러오지 못했습니다.');
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const cpuPct = metrics ? Math.round(metrics.cpuPercent) : 0;
+  const memPct = metrics?.memoryTotalBytes
+    ? Math.round((metrics.memoryUsedBytes / metrics.memoryTotalBytes) * 100)
+    : 0;
+  const diskPct = metrics?.diskTotalBytes
+    ? Math.round((metrics.diskUsedBytes / metrics.diskTotalBytes) * 100)
+    : 0;
+  const netTotalMBps = metrics?.networkSupported
+    ? (metrics.networkRxMBps + metrics.networkTxMBps)
+    : null;
+
+  function gaugeFillClass(pct) {
+    if (pct >= 85) return 'ad-gauge__fill ad-gauge__fill--danger';
+    if (pct >= 65) return 'ad-gauge__fill ad-gauge__fill--warn';
+    return 'ad-gauge__fill';
+  }
+
+  const proRate = memberStats?.totalCount
+    ? `전체의 ${((memberStats.proCount / memberStats.totalCount) * 100).toFixed(1)}%`
+    : '-';
+
+  const stats = [
+    {
+      label: '전체 회원수',
+      value: memberStats ? `${memberStats.totalCount.toLocaleString()}명` : (memberStatsError ? '-' : '불러오는 중...'),
+      delta: memberStats ? `Pro ${memberStats.proCount} · Basic ${memberStats.basicCount}` : (memberStatsError || ''),
+      dir: 'up',
+    },
+    {
+      label: 'Pro 구독자',
+      value: memberStats ? `${memberStats.proCount.toLocaleString()}명` : (memberStatsError ? '-' : '불러오는 중...'),
+      delta: memberStats ? proRate : (memberStatsError || ''),
+      dir: 'up',
+    },
+    ...OTHER_STATS,
+  ];
+
   return (
     <AdminLayout
       title="홈"
@@ -35,7 +107,7 @@ export default function AdminDashboardPage({ user, onLogout }) {
       onLogout={onLogout}
     >
       <div className="ad-stats-grid">
-        {STATS.map((s) => (
+        {stats.map((s) => (
           <div className="ad-stat-card" key={s.label}>
             <div className="ad-stat-card__label">{s.label}</div>
             <div className="ad-stat-card__value">{s.value}</div>
@@ -93,22 +165,23 @@ export default function AdminDashboardPage({ user, onLogout }) {
           </div>
           <Link to="/admin/system"><Badge type="primary">시스템 모니터링 →</Badge></Link>
         </div>
+        {metricsError && <div className="ad-empty">{metricsError}</div>}
         <div className="ad-section__body ad-gauge-grid">
           <div className="ad-gauge">
-            <div className="ad-gauge__head"><span className="ad-gauge__label">CPU</span><span className="ad-gauge__value">42%</span></div>
-            <div className="ad-gauge__track"><div className="ad-gauge__fill" style={{ width: '42%' }} /></div>
+            <div className="ad-gauge__head"><span className="ad-gauge__label">CPU</span><span className="ad-gauge__value">{metrics ? `${cpuPct}%` : '-'}</span></div>
+            <div className="ad-gauge__track"><div className={gaugeFillClass(cpuPct)} style={{ width: `${cpuPct}%` }} /></div>
           </div>
           <div className="ad-gauge">
-            <div className="ad-gauge__head"><span className="ad-gauge__label">메모리</span><span className="ad-gauge__value">67%</span></div>
-            <div className="ad-gauge__track"><div className="ad-gauge__fill ad-gauge__fill--warn" style={{ width: '67%' }} /></div>
+            <div className="ad-gauge__head"><span className="ad-gauge__label">메모리</span><span className="ad-gauge__value">{metrics ? `${memPct}%` : '-'}</span></div>
+            <div className="ad-gauge__track"><div className={gaugeFillClass(memPct)} style={{ width: `${memPct}%` }} /></div>
           </div>
           <div className="ad-gauge">
-            <div className="ad-gauge__head"><span className="ad-gauge__label">디스크</span><span className="ad-gauge__value">28%</span></div>
-            <div className="ad-gauge__track"><div className="ad-gauge__fill" style={{ width: '28%' }} /></div>
+            <div className="ad-gauge__head"><span className="ad-gauge__label">디스크</span><span className="ad-gauge__value">{metrics ? `${diskPct}%` : '-'}</span></div>
+            <div className="ad-gauge__track"><div className={gaugeFillClass(diskPct)} style={{ width: `${diskPct}%` }} /></div>
           </div>
           <div className="ad-gauge">
-            <div className="ad-gauge__head"><span className="ad-gauge__label">AI 서버 응답</span><span className="ad-gauge__value">정상</span></div>
-            <div className="ad-gauge__track"><div className="ad-gauge__fill" style={{ width: '100%' }} /></div>
+            <div className="ad-gauge__head"><span className="ad-gauge__label">네트워크</span><span className="ad-gauge__value">{netTotalMBps != null ? `${netTotalMBps.toFixed(1)} MB/s` : '-'}</span></div>
+            <div className="ad-gauge__track"><div className="ad-gauge__fill" style={{ width: netTotalMBps != null ? `${Math.min(100, netTotalMBps * 10)}%` : '0%' }} /></div>
           </div>
         </div>
       </section>

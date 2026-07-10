@@ -129,7 +129,7 @@ export default function MyPage({ user, onLogout, onUserUpdate }) {
     setError('');
 
     try {
-      const result = await updateMemberInfo(userId, {
+      const result = await updateMemberInfo({
         name: form.name.trim(),
         phone: form.phone.trim(),
         job: form.job.trim(),
